@@ -22,6 +22,5 @@ linux/
 android/key.properties
 google-services.json
 GoogleService-Info.plist
-firebase_options.dart
 .env
 .env.*

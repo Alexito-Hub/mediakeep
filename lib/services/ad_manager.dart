@@ -1,5 +1,5 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart';
+// Platform detection: use Flutter's foundation APIs instead of dart:io so web compile succeeds
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform, debugPrint, VoidCallback;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -51,9 +51,9 @@ class AdManager {
     if (kIsWeb) {
       return ''; // Banners in Web are handled via WebAdView separately
     }
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return 'ca-app-pub-4579298756868487/3183415422'; // AnunciosMediaB
-    } else if (Platform.isIOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       return 'ca-app-pub-4579298756868487/3183415422';
     }
     return '';
@@ -61,9 +61,9 @@ class AdManager {
 
   static String get interstitialAdUnitId {
     if (kIsWeb) return '';
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return 'ca-app-pub-4579298756868487/3510718482'; // AdsMediaI
-    } else if (Platform.isIOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       return 'ca-app-pub-4579298756868487/3510718482';
     }
     return '';
@@ -137,9 +137,9 @@ class AdManager {
 
   static String get appOpenAdUnitId {
     if (kIsWeb) return '';
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return 'ca-app-pub-4579298756868487/6168671412'; // AnunciosMediaAA
-    } else if (Platform.isIOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       return 'ca-app-pub-4579298756868487/6168671412';
     }
     return '';
@@ -169,51 +169,55 @@ class AdManager {
 
   /// Muestra el anuncio App Open si está listo y no ha expirado (max 4 horas)
   static Future<void> showAppOpenAdIfAvailable() async {
-    if (kIsWeb) return; // nothing to show on web
+    // quick early checks
+    if (kIsWeb) return;
     if (await isPremium()) return;
 
-    if (_appOpenAd == null) {
-      debugPrint('AppOpenAd not available, trying to load it.');
-      loadAppOpenAd();
-      return;
-    }
+    try {
+      if (_appOpenAd == null) {
+        debugPrint('AppOpenAd not available, trying to load it.');
+        loadAppOpenAd();
+        return;
+      }
 
-    if (_isShowingAd) {
-      debugPrint('AppOpenAd already showing.');
-      return;
-    }
+      if (_isShowingAd) {
+        debugPrint('AppOpenAd already showing.');
+        return;
+      }
 
-    // Checking if the ad is older than 4 hours as per AdMob guidelines
-    if (_appOpenLoadTime != null &&
-        DateTime.now().difference(_appOpenLoadTime!).inHours >= 4) {
-      debugPrint('AppOpenAd expired. Reloading...');
-      _appOpenAd!.dispose();
-      _appOpenAd = null;
-      loadAppOpenAd();
-      return;
-    }
-
-    _appOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
-      onAdShowedFullScreenContent: (ad) {
-        _isShowingAd = true;
-        debugPrint('AppOpenAd showed full screen content.');
-      },
-      onAdFailedToShowFullScreenContent: (ad, error) {
-        debugPrint('AppOpenAd failed to show: $error');
-        _isShowingAd = false;
-        ad.dispose();
+      if (_appOpenLoadTime != null &&
+          DateTime.now().difference(_appOpenLoadTime!).inHours >= 4) {
+        debugPrint('AppOpenAd expired. Reloading...');
+        _appOpenAd!.dispose();
         _appOpenAd = null;
-      },
-      onAdDismissedFullScreenContent: (ad) {
-        debugPrint('AppOpenAd dismissed full screen content.');
-        _isShowingAd = false;
-        ad.dispose();
-        _appOpenAd = null;
-        loadAppOpenAd(); // Load the next one
-      },
-    );
+        loadAppOpenAd();
+        return;
+      }
 
-    _appOpenAd!.show();
+      _appOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: (ad) {
+          _isShowingAd = true;
+          debugPrint('AppOpenAd showed full screen content.');
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          debugPrint('AppOpenAd failed to show: $error');
+          _isShowingAd = false;
+          ad.dispose();
+          _appOpenAd = null;
+        },
+        onAdDismissedFullScreenContent: (ad) {
+          debugPrint('AppOpenAd dismissed full screen content.');
+          _isShowingAd = false;
+          ad.dispose();
+          _appOpenAd = null;
+          loadAppOpenAd();
+        },
+      );
+
+      _appOpenAd!.show();
+    } catch (e, s) {
+      debugPrint('Error in showAppOpenAdIfAvailable: $e\n$s');
+    }
   }
 
   /// Muestra el anuncio en pantalla completa consumiendo la memoria
@@ -255,9 +259,9 @@ class AdManager {
 
   static String get rewardedAdUnitId {
     if (kIsWeb) return '';
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return 'ca-app-pub-4579298756868487/5753738440'; // AdsMediaR
-    } else if (Platform.isIOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       return 'ca-app-pub-4579298756868487/5753738440';
     }
     return '';
@@ -329,9 +333,9 @@ class AdManager {
 
   static String get rewardedInterstitialAdUnitId {
     if (kIsWeb) return '';
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return 'ca-app-pub-4579298756868487/7809056141'; // AdsMediaIR
-    } else if (Platform.isIOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       return 'ca-app-pub-4579298756868487/7809056141';
     }
     return '';
@@ -403,9 +407,9 @@ class AdManager {
 
   static String get nativeAdUnitId {
     if (kIsWeb) return '';
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return 'ca-app-pub-4579298756868487/7588400577'; // AdsMediaNa
-    } else if (Platform.isIOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       return 'ca-app-pub-4579298756868487/7588400577';
     }
     return '';

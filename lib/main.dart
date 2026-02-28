@@ -85,7 +85,11 @@ class DownloaderAppState extends State<DownloaderApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    AdManager.loadAppOpenAd(); // Load initial AppOpenAd
+    // only try to load app open ads on mobile platforms
+    if (!kIsWeb) {
+      debugPrint('Initializing ads (kIsWeb=$kIsWeb)');
+      AdManager.loadAppOpenAd(); // Load initial AppOpenAd
+    }
     _loadThemeMode();
     _setupWidgetListener();
     _setupQuickActions();
@@ -94,7 +98,9 @@ class DownloaderAppState extends State<DownloaderApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      AdManager.showAppOpenAdIfAvailable();
+      if (!kIsWeb) {
+        AdManager.showAppOpenAdIfAvailable();
+      }
     }
   }
 

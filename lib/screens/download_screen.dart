@@ -35,9 +35,8 @@ import 'settings_screen.dart';
 import 'history_screen.dart';
 import 'active_downloads_screen.dart';
 import '../services/history_service.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/ad_manager.dart';
-import '../widgets/ads/web_ad_view.dart';
+import '../widgets/ad_banner.dart';
 import 'auth_screen.dart';
 import 'media_preview_screen.dart';
 
@@ -69,9 +68,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
   bool _isDownloading = false;
 
-  BannerAd? _bannerAd;
-  // ignore: prefer_final_fields — mutated in setState callbacks
-  bool _isBannerAdLoaded = false;
+  // banner state moved to AdBanner widget; no longer needed here
 
   @override
   void initState() {
@@ -156,7 +153,6 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
   @override
   void dispose() {
-    _bannerAd?.dispose();
     _debounceTimer?.cancel();
     _intentDataStreamSubscription?.cancel();
     _controller.dispose();
@@ -800,37 +796,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
     );
   }
 
-  Widget? _buildAdBanner() {
-    if (!kIsWeb && _isBannerAdLoaded && _bannerAd != null) {
-      return SafeArea(
-        child: Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          width: double.infinity,
-          height: _bannerAd!.size.height.toDouble(),
-          alignment: Alignment.center,
-          child: SizedBox(
-            width: _bannerAd!.size.width.toDouble(),
-            height: _bannerAd!.size.height.toDouble(),
-            child: AdWidget(ad: _bannerAd!),
-          ),
-        ),
-      );
-    } else if (kIsWeb) {
-      return SafeArea(
-        child: Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          width: double.infinity,
-          height: 100,
-          alignment: Alignment.center,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 728),
-            child: WebAdView(),
-          ),
-        ),
-      );
-    }
-    return null;
-  }
+  Widget? _buildAdBanner() => const AdBanner();
 
   Widget _buildInputCard(bool isDark) {
     return Card(

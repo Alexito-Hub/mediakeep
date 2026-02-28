@@ -4,6 +4,11 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// the implementation is swapped at compile time: web -> web_ad_service,
+// others -> stub
+import 'web_ad_service.dart'
+    if (dart.library.io) 'web_ad_service_stub.dart';
+
 class AdManager {
   static InterstitialAd? _interstitialAd;
   static int _numInterstitialLoadAttempts = 0;
@@ -68,6 +73,14 @@ class AdManager {
   /// Instancia un banner y exige un callback estricto cuando termine de cargar
   /// para inyectarlo en el árbol de widgets de forma segura.
   static Future<BannerAd?> loadBanner(VoidCallback onLoaded) async {
+    // web uses a different mechanism (see WebAdService)
+    if (kIsWeb) {
+      // web banner is handled by WebAdService; a widget placed with
+      // `WebBannerAd()` will call `init()` and `pushAd` itself.
+      WebAdService.init();
+      return null;
+    }
+
     if (await isPremium()) return null; // Bypass
 
     final banner = BannerAd(
@@ -93,6 +106,8 @@ class AdManager {
   /// Carga y mantiene en memoria un anuncio a pantalla completa
   /// para ser invocado sin latencia cuando se requiera.
   static Future<void> createInterstitialAd() async {
+    // plugin not supported on web; avoid runtime exception
+    if (kIsWeb) return;
     if (await isPremium()) return; // Bypass
 
     InterstitialAd.load(
@@ -133,6 +148,7 @@ class AdManager {
 
   /// Carga el anuncio App Open en memoria
   static Future<void> loadAppOpenAd() async {
+    if (kIsWeb) return; // no AppOpenAd on web
     if (await isPremium()) return;
 
     AppOpenAd.load(
@@ -154,6 +170,7 @@ class AdManager {
 
   /// Muestra el anuncio App Open si está listo y no ha expirado (max 4 horas)
   static Future<void> showAppOpenAdIfAvailable() async {
+    if (kIsWeb) return; // nothing to show on web
     if (await isPremium()) return;
 
     if (_appOpenAd == null) {
@@ -203,6 +220,7 @@ class AdManager {
   /// Muestra el anuncio en pantalla completa consumiendo la memoria
   /// reservada y encolando una nueva precarga para el futuro.
   static Future<void> showInterstitialAd() async {
+    if (kIsWeb) return; // no interstitials on web
     if (await isPremium() || _interstitialAd == null) {
       return; // Bypass o faltante
     }
@@ -248,6 +266,7 @@ class AdManager {
 
   /// Carga el anuncio bonificado en memoria para tenerlo listo
   static void loadRewardedAd() {
+    if (kIsWeb) return;
     RewardedAd.load(
       adUnitId: rewardedAdUnitId,
       request: const AdRequest(),
@@ -271,6 +290,7 @@ class AdManager {
 
   /// Muestra el anuncio bonificado y ejecuta un callback al completarse exitosamente
   static void showRewardedAd(Function(num amount) onEarnedReward) {
+    if (kIsWeb) return;
     if (_rewardedAd == null) {
       debugPrint('Warning: attempt to show rewarded before loaded.');
       // Attempt to load for next time
@@ -320,6 +340,7 @@ class AdManager {
 
   /// Carga un anuncio Intersticial Bonificado (se abre a pantalla completa automático)
   static void loadRewardedInterstitialAd() {
+    if (kIsWeb) return;
     RewardedInterstitialAd.load(
       adUnitId: rewardedInterstitialAdUnitId,
       request: const AdRequest(),
@@ -343,6 +364,7 @@ class AdManager {
 
   /// Muestra el anuncio intersticial bonificado que requiere menos fricción
   static void showRewardedInterstitialAd(Function onEarnedReward) {
+    if (kIsWeb) return;
     if (_rewardedInterstitialAd == null) {
       debugPrint(
         'Warning: attempt to show rewarded interstitial before loaded.',
@@ -392,6 +414,7 @@ class AdManager {
 
   /// Instancia un NativeAd que encaja en el diseño nativo de la app
   static Future<NativeAd?> loadNativeAd(VoidCallback onLoaded) async {
+    if (kIsWeb) return null; // not supported
     if (await isPremium()) return null; // Bypass prmium
 
     final nativeAd = NativeAd(

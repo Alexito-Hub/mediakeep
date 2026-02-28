@@ -9,7 +9,7 @@ import '../utils/constants.dart';
 import '../utils/platform_config.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/ad_manager.dart';
-import '../widgets/ads/web_ad_view.dart';
+import '../widgets/ad_banner.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../utils/responsive.dart';
 
@@ -28,8 +28,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  BannerAd? _bannerAd;
-  bool _isBannerAdLoaded = false;
+  // banner state is now managed by AdBanner widget, so we no longer need
+  // _bannerAd or _isBannerAdLoaded fields.
 
   @override
   void initState() {
@@ -37,16 +37,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _loadHistory();
     _searchController.addListener(_filterSearch);
 
-    AdManager.loadBanner(() {
-      if (mounted) setState(() => _isBannerAdLoaded = true);
-    }).then((ad) {
-      if (mounted) setState(() => _bannerAd = ad);
-    });
+    // no longer load manually; AdBanner handles everything internally
+    // (the previous code is kept for reference but not executed)
+    // AdManager.loadBanner(() {
+    //   if (mounted) setState(() => _isBannerAdLoaded = true);
+    // }).then((ad) {
+    //   if (mounted) setState(() => _bannerAd = ad);
+    // });
   }
 
   @override
   void dispose() {
-    _bannerAd?.dispose();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -263,35 +264,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget? _buildAdBanner() {
-    if (!kIsWeb && _isBannerAdLoaded && _bannerAd != null) {
-      return SafeArea(
-        child: Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          width: double.infinity,
-          height: _bannerAd!.size.height.toDouble(),
-          alignment: Alignment.center,
-          child: SizedBox(
-            width: _bannerAd!.size.width.toDouble(),
-            height: _bannerAd!.size.height.toDouble(),
-            child: AdWidget(ad: _bannerAd!),
-          ),
-        ),
-      );
-    } else if (kIsWeb) {
-      return SafeArea(
-        child: Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          width: double.infinity,
-          height: 100,
-          alignment: Alignment.center,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 728),
-            child: WebAdView(),
-          ),
-        ),
-      );
-    }
-    return null;
+    // simplified: just return the reusable AdBanner widget defined elsewhere
+    return const AdBanner();
   }
 
   Widget _buildSliverAppBar() {

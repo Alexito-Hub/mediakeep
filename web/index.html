@@ -27,6 +27,12 @@
   <meta name="google-signin-client_id"
     content="354908157298-50aud2k7amfugeqhqu2hdpstb9jf4psi.apps.googleusercontent.com">
 
+  <!-- AdSense configuration -->
+  <meta name="google-adsense-account" content="ca-pub-1143269636112950">
+  <!-- Publisher ID para anuncios web (se utiliza también en el script) -->
+  <meta name="adsense-client" content="ca-pub-1143269636112950">
+  <!-- El slot debe crearlo en AdSense/Ad Manager y sustituir aquí -->
+  <meta name="adsense-slot" content="AQUI_TU_SLOT_ID">
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -145,28 +151,8 @@
       }
     }
   </script>
-  <script src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3940256099942544"
+  <script src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1143269636112950"
     crossorigin="anonymous" onerror="window.isAdBlockActive = true;"></script>
-
-  <!-- Firebase Web SDK Integration -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDXSJm4kmhZQ-WHYAZNxApPqzDC0yhprWQ",
-      authDomain: "media-keep-e1636.firebaseapp.com",
-      projectId: "media-keep-e1636",
-      storageBucket: "media-keep-e1636.firebasestorage.app",
-      messagingSenderId: "1073122313383",
-      appId: "1:1073122313383:web:298bc84ca30fa3d3b1c782",
-      measurementId: "G-Z8CNY1YELD"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    getAnalytics(app);
-  </script>
-
   <script src="flutter_bootstrap.js" async></script>
 </body>
 

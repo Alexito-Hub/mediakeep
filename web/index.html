@@ -27,18 +27,18 @@
   <meta name="google-signin-client_id"
     content="354908157298-50aud2k7amfugeqhqu2hdpstb9jf4psi.apps.googleusercontent.com">
 
-  <!-- AdSense configuration -->
   <meta name="google-adsense-account" content="ca-pub-1143269636112950">
-  <!-- Publisher ID para anuncios web (se utiliza también en el script) -->
   <meta name="adsense-client" content="ca-pub-1143269636112950">
-  
-  <!-- iOS meta tags & icons -->
+  <meta name="adsense-slot" content="7071730589">
+
+  <script async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1143269636112950"
+    crossorigin="anonymous"></script>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="mediakeep">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png">
 
   <title>mediakeep</title>
@@ -115,17 +115,12 @@
 </head>
 
 <body>
-  <picture id="splash">
-    <source
-      srcset="splash/img/light-1x.png 1x, splash/img/light-2x.png 2x, splash/img/light-3x.png 3x, splash/img/light-4x.png 4x"
-      media="(prefers-color-scheme: light)">
-    <source
-      srcset="splash/img/dark-1x.png 1x, splash/img/dark-2x.png 2x, splash/img/dark-3x.png 3x, splash/img/dark-4x.png 4x"
-      media="(prefers-color-scheme: dark)">
-    <img class="center" aria-hidden="true" src="splash/img/light-1x.png" alt="">
-  </picture>
+  <!-- splash screen removed; app will start with transparent background -->
+  <style>
+    body { background-color: #202020; }
+  </style>
 
-  <!-- Google AdSense & AdBlock Detection -->
+
   <script>
     window.isAdBlockActive = false;
     window.addEventListener('load', function () {
@@ -150,8 +145,6 @@
       }
     }
   </script>
-  <script src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1143269636112950"
-    crossorigin="anonymous" onerror="window.isAdBlockActive = true;"></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 

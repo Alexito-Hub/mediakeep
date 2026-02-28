@@ -51,8 +51,9 @@ app.*.map.json
 # Android Caches
 /android/.gradle/
 /android/captures/
-/android/gradlew
-/android/gradlew.bat
+# the wrapper scripts should be checked in so everyone can build the project
+# /android/gradlew
+# /android/gradlew.bat
 /android/local.properties
 /android/**/GeneratedPluginRegistrant.java
 

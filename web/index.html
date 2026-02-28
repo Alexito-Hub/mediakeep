@@ -2,28 +2,12 @@
 <html>
 
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Downloader Media">
 
-  <!-- Web Client ID de Google Cloud: debe coincidir con el que se usa en
-       auth_screen.dart (kIsWeb) y con el cliente registrado en Firebase. Si
-       cambiaslo, vuelve a descargar google-services.json y actualiza aquí. -->
   <meta name="google-signin-client_id"
     content="354908157298-50aud2k7amfugeqhqu2hdpstb9jf4psi.apps.googleusercontent.com">
 
@@ -31,86 +15,129 @@
   <meta name="adsense-client" content="ca-pub-1143269636112950">
   <meta name="adsense-slot" content="7071730589">
 
-  <script async
-    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1143269636112950"
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1143269636112950"
     crossorigin="anonymous"></script>
+
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="mediakeep">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
   <link rel="icon" type="image/png" href="favicon.png">
 
   <title>mediakeep</title>
   <link rel="manifest" href="manifest.json">
-  <style id="splash-screen-style">
-    html {
-      height: 100%
-    }
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#18181B">
+  <meta name="theme-color" content="#ffffff">
+
+  <style id="splash-screen-style">
     body {
-      margin: 0;
-      min-height: 100%;
       background-color: #ffffff;
-      background-size: 100% 100%;
+      margin: 0;
+      min-height: 100vh;
     }
 
     @media (prefers-color-scheme: dark) {
       body {
-        /* match Flutter dark scaffoldBackgroundColor (0xFF18181B) */
         background-color: #18181B;
       }
     }
 
-    .center {
-      margin: 0;
-      position: absolute;
+    #splash {
+      position: fixed;
       top: 50%;
       left: 50%;
-      -ms-transform: translate(-50%, -50%);
       transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+      z-index: 99999;
     }
 
-    .contain {
-      display: block;
-      width: 100%;
-      height: 100%;
+    .logo-container {
+      animation: popIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+        float 3s ease-in-out infinite 0.8s;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .logo-container img {
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
       object-fit: contain;
     }
 
-    .stretch {
-      display: block;
-      width: 100%;
-      height: 100%;
+    @media (prefers-color-scheme: dark) {
+      .logo-container img {
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      }
     }
 
-    .cover {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .spinner {
+      margin: 0 auto;
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(0, 0, 0, 0.08);
+      border-top-color: #18181B;
+      border-right-color: #18181B;
+      border-radius: 50%;
+      animation: spin 0.85s cubic-bezier(0.6, 0.1, 0.4, 0.9) infinite;
+      opacity: 0;
+      animation-fill-mode: forwards;
+      animation-delay: 0.3s;
     }
 
-    .bottom {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      -ms-transform: translate(-50%, 0);
-      transform: translate(-50%, 0);
+    @media (prefers-color-scheme: dark) {
+      .spinner {
+        border: 3px solid rgba(255, 255, 255, 0.08);
+        border-top-color: #ffffff;
+        border-right-color: #ffffff;
+      }
     }
 
-    .bottomLeft {
-      position: absolute;
-      bottom: 0;
-      left: 0;
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+        opacity: 1;
+      }
+
+      100% {
+        transform: rotate(360deg);
+        opacity: 1;
+      }
     }
 
-    .bottomRight {
-      position: absolute;
-      bottom: 0;
-      right: 0;
+    @keyframes popIn {
+      0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-8px);
+      }
+
+      100% {
+        transform: translateY(0px);
+      }
     }
   </style>
+
   <script id="splash-screen-script">
     function removeSplashFromWeb() {
       document.getElementById("splash")?.remove();
@@ -118,44 +145,13 @@
       document.body.style.background = "transparent";
     }
   </script>
-  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
-  <!-- theme-color meta tags support light/dark mode and PWAs -->
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#18181B">
-  <meta name="theme-color" content="#ffffff">
 </head>
 
 <body>
-  <style>
-    body { background-color: #ffffff; margin:0; }
-    @media (prefers-color-scheme: dark) {
-      body { background-color: #18181B; }
-    }
-    #splash {
-      position:fixed;
-      top:50%; left:50%;
-      transform:translate(-50%,-50%);
-      text-align:center;
-      pointer-events:none;
-    }
-    #splash img {
-      width:64px; height:64px;
-      display:block;
-      margin:0 auto;
-    }
-    #splash .spinner {
-      margin-top:8px;
-      width:24px; height:24px;
-      border:3px solid rgba(0,0,0,0.2);
-      border-top-color: rgba(0,0,0,0.7);
-      border-radius:50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { to{transform:rotate(360deg);} }
-  </style>
-
   <div id="splash">
-    <img src="icons/Icon-192.png" alt="logo">
+    <div class="logo-container">
+      <img src="icons/Icon-192.png" alt="mediakeep logo">
+    </div>
     <div class="spinner"></div>
   </div>
 
@@ -166,8 +162,10 @@
         if (typeof adsbygoogle === 'undefined') {
           window.isAdBlockActive = true;
         }
+        removeSplashFromWeb();
       }, 1500);
     });
+
     function pushAd() {
       var adElements = document.getElementsByClassName('adsbygoogle');
       var uninitializedAds = Array.from(adElements).filter(function (el) {
@@ -175,11 +173,7 @@
       });
 
       if (uninitializedAds.length > 0) {
-        try {
-          (adsbygoogle = window.adsbygoogle || []).push({});
-        } catch (e) {
-          console.error("AdSense Push Error (Ignored): " + e);
-        }
+        (adsbygoogle = window.adsbygoogle || []).push({});
       }
     }
   </script>

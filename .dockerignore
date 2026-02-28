@@ -1,7 +1,6 @@
 # Ignorar basura antes de enviar a Docker Daemon
 .dockerignore
 Dockerfile
-nginx.conf
 
 # Builds e Intermedios
 build/

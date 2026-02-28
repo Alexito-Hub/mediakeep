@@ -1,0 +1,149 @@
+[
+  {
+    "version": "1.0.4",
+    "date": "2026-02-27",
+    "title": "Notificaciones Optimizadas & Corrección de Video",
+    "changes": [
+      {
+        "type": "fix",
+        "description": "Se eliminó la notificación duplicada al descargar. Ahora solo se muestra una notificación elegante con el título real del contenido (Ej: TikTok | Usuario)."
+      },
+      {
+        "type": "fix",
+        "description": "Corregido un error donde los videos descargados en Android moderno fallaban al intentar reproducirlos directamente desde el historial debido a rutas con espacios."
+      },
+      {
+        "type": "improvement",
+        "description": "Limpieza de advertencias de SDK y estabilización final para release."
+      }
+    ]
+  },
+  {
+    "version": "1.0.3",
+    "date": "2026-02-27",
+    "title": "AdBlockers baneados, Mejoras UI y Monetización",
+    "changes": [
+      {
+        "type": "feature",
+        "description": "Detector anti-AdBlock añadido a Web. Pausa las descargas gratis si hay bloqueadores activos."
+      },
+      {
+        "type": "feature",
+        "description": "Sistema avanzado de descargas en segundo plano sin bloquear la UI."
+      },
+      {
+        "type": "feature",
+        "description": "Nueva pantalla de Historial integrada con dual-sync (Local + Nube Firestore)."
+      },
+      {
+        "type": "feature",
+        "description": "Limites de uso configurables para usuarios anónimos (5 refs) y gratuitos (10 refs)."
+      },
+      {
+        "type": "feature",
+        "description": "Planes de pago integrados (Premium, Paquetes de descargas) con Checkout renovado."
+      },
+      {
+        "type": "improvement",
+        "description": "App responsive: Ahora se adapta perfectamente a pantallas de iPad, Tabletas y Desktop."
+      },
+      {
+        "type": "improvement",
+        "description": "Mejoras extremas de rendimiento: RepaintBoundaries localizados, SliverLists optimizadas y lazy loading."
+      },
+      {
+        "type": "improvement",
+        "description": "Sistema de anuncios masivo: Integración de App Open Ads, Banners intercalados e Interstitials fluidos."
+      },
+      {
+        "type": "fix",
+        "description": "Corrección de múltiples cierres inesperados (RenderFlex overflows) y memory leaks limpiados."
+      },
+      {
+        "type": "fix",
+        "description": "Los nombres de las notificaciones al descargar ya muestran el título real en vez de nombres genéricos."
+      }
+    ]
+  },
+  {
+    "version": "1.0.6",
+    "date": "2025-12-22",
+    "title": "Validacion de API y Mejoras de UX",
+    "changes": [
+      {
+        "type": "feature",
+        "description": "Sistema de validacion de API escalable basado en esquemas para verificar integridad de datos."
+      },
+      {
+        "type": "feature",
+        "description": "Visualizacion de respuestas completas del API en Status Screen para debugging."
+      },
+      {
+        "type": "feature",
+        "description": "Skeleton loaders animados con efecto shimmer en todas las pantallas de carga."
+      },
+      {
+        "type": "improvement",
+        "description": "Reorganizacion completa de lib/ con convenciones estandarizadas (_model.dart, _widget.dart)."
+      },
+      {
+        "type": "improvement",
+        "description": "Extraccion de clases helper a core/responses y core/types para mejor modularidad."
+      },
+      {
+        "type": "improvement",
+        "description": "Validacion automatica detecta URLs faltantes, tipos incorrectos y datos incompletos."
+      },
+      {
+        "type": "fix",
+        "description": "Corregidos todos los colores hardcoded para respetar tema oscuro/claro correctamente."
+      },
+      {
+        "type": "fix",
+        "description": "Removidas lineas visuales no deseadas en ExpansionTile del Status Screen."
+      }
+    ]
+  },
+  {
+    "version": "1.0.1",
+    "date": "2025-12-20",
+    "title": "Rediseño Dinámico y Monitor de Estado",
+    "changes": [
+      {
+        "type": "feature",
+        "description": "Nuevo widget dinámico con lista de descargas recientes y acciones rápidas."
+      },
+      {
+        "type": "feature",
+        "description": "Añadida página de Estado del Sistema para monitorear la salud del servidor y plataformas."
+      },
+      {
+        "type": "improvement",
+        "description": "Estética premium con fondos degradados y mejores espaciados."
+      },
+      {
+        "type": "fix",
+        "description": "Corregido error de sincronización en el contador de descargas del widget."
+      }
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2025-12-13",
+    "title": "Lanzamiento Inicial",
+    "changes": [
+      {
+        "type": "feature",
+        "description": "Soporte para descargas de TikTok, Facebook, Spotify y Threads."
+      },
+      {
+        "type": "feature",
+        "description": "Historial de descargas local."
+      },
+      {
+        "type": "feature",
+        "description": "Modo oscuro y claro automático."
+      }
+    ]
+  }
+]

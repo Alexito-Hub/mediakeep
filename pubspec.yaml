@@ -1,0 +1,193 @@
+name: mediakeep
+display_name: Media Keep
+description: "Descarga videos e imágenes sin marca de agua."
+
+# Cambia el logo y splash screen usando flutter_native_splash y flutter_launcher_icons
+# 1. Agrega los siguientes paquetes a dev_dependencies:
+#    flutter_native_splash: ^2.4.0
+#    flutter_launcher_icons: ^0.13.1
+# 2. Agrega la configuración recomendada al final de este archivo.
+# 3. Coloca tu logo en assets/logo.png
+# 4. Ejecuta:
+#    flutter pub get
+#    flutter pub run flutter_launcher_icons:main
+#    flutter pub run flutter_native_splash:create
+# Configuración para flutter_launcher_icons
+flutter_icons:
+  android: true
+  ios: true
+  web:
+    generate: true
+    image_path: "assets/logo-nobg-white.png"
+    background_color: "#342b51"
+  windows:
+    generate: true
+    image_path: "assets/logo-nobg-white.png"
+    icon_size: 48
+  image_path: "assets/logo-nobg-white.png"
+  adaptive_icon_background: "#342b51"
+  adaptive_icon_foreground: "assets/logo-nobg-white.png"
+
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.4+8
+
+environment:
+  sdk: ^3.9.2
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Iconos de estilo iOS (Solo una vez)
+  cupertino_icons: ^1.0.8
+  
+  # Firebase
+  firebase_core: ^3.9.0
+  firebase_auth: ^5.4.0
+  cloud_firestore: ^5.6.0
+  google_sign_in: ^6.2.2
+  google_sign_in_web: ^0.12.0
+  # Required by google_button_web.dart when casting to GoogleSignInPlatform
+  google_sign_in_platform_interface: ^2.5.0
+
+  
+  # Monetización & Anuncios
+  google_mobile_ads: ^5.1.0
+  
+  # Background Downloads
+  flutter_downloader: ^1.11.8
+  
+  # Red y Utilidades
+  http: ^1.2.1
+  url_launcher: ^6.3.2
+  
+  # Descargas y Archivos (Necesarios para el código main.dart)
+  dio: ^5.4.0
+  path_provider: ^2.1.2
+  permission_handler: ^11.2.0
+  
+  # Share Extension
+  receive_sharing_intent: ^1.8.1
+  
+  # Share downloaded files
+  share_plus: ^10.1.4
+  
+  # Settings & persistence
+  shared_preferences: ^2.2.2
+  
+  # Date formatting
+  intl: ^0.19.0
+  
+  # YAML parser for version
+  yaml: ^3.1.2
+  
+  # Video player for preview
+  video_player: ^2.9.2
+  video_player_win: ^3.0.0
+  
+  # Audio player for Spotify previews
+  audioplayers: ^6.1.0
+  dtd: ^4.0.0
+  flutter_lints: ^6.0.0
+  google_fonts: ^6.3.2
+  json_rpc_2: ^4.0.0
+  path: ^1.9.1
+  stack_trace: ^1.12.1
+  web: ^1.1.1
+  
+  # App Shortcuts (accesos directos al mantener presionada la app)
+  quick_actions: ^1.1.0
+  
+  # Home Screen Widgets (widgets para la pantalla principal)
+  home_widget: ^0.6.0
+  
+  # gallery_saver: ^2.3.2  <-- MANTÉN ESTO COMENTADO O BÓRRALO
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  assets:
+    - pubspec.yaml
+    - assets/changelog.json
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
+
+# Configuración para flutter_native_splash
+flutter_native_splash:
+  # Color de fondo para el splash screen
+  color: "#FFFFFF"
+  color_dark: "#121212"
+  
+  # Logo para el splash screen
+  image: assets/logo-nobg-black.png
+  image_dark: assets/logo-nobg-white.png
+  
+  # Android 12+ específico
+  android_12:
+    image: assets/logo-nobg-black.png
+    image_dark: assets/logo-nobg-white.png
+    color: "#FFFFFF"
+    color_dark: "#121212"
+  
+  # Plataformas donde se aplicará
+  android: true
+  ios: true
+  web: false
+

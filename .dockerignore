@@ -1,0 +1,27 @@
+# Ignorar basura antes de enviar a Docker Daemon
+.dockerignore
+Dockerfile
+nginx.conf
+
+# Builds e Intermedios
+build/
+.dart_tool/
+.pub-cache/
+.pub/
+
+# No enviar el código fuente nativo innecesario para compilar Web
+android/
+ios/
+macos/
+windows/
+linux/
+
+# Credenciales (Por si acaso lo arrastra, Docker no debe verlas ni guardarlas en sus capas)
+*.jks
+*.keystore
+android/key.properties
+google-services.json
+GoogleService-Info.plist
+firebase_options.dart
+.env
+.env.*

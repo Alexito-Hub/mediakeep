@@ -18,7 +18,10 @@ class WebAdService {
 
     // Flutter web exposes a global `flutterPlatformViewRegistry` object
     // on the window; use JS interop to invoke its registerViewFactory method.
-    final registry = js_util.getProperty(html.window, 'flutterPlatformViewRegistry');
+    final registry = js_util.getProperty(
+      html.window,
+      'flutterPlatformViewRegistry',
+    );
     if (registry == null) {
       // nothing to register (maybe running under a non-web build or early startup)
       _initialized = true;
@@ -61,7 +64,7 @@ class WebAdService {
           // ignore - function may not exist if not configured yet
         }
         return div;
-      })
+      }),
     ]);
 
     _initialized = true;

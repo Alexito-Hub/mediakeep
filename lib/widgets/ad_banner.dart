@@ -65,10 +65,12 @@ class _AdBannerState extends State<AdBanner> {
           return SizedBox(
             height: widget.height,
             width: double.infinity,
-            child: Center(child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 728),
-              child: WebAdView(),
-            )),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 728),
+                child: WebAdView(),
+              ),
+            ),
           );
         }
 

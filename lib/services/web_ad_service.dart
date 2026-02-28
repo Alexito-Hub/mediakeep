@@ -30,14 +30,16 @@ class WebAdService {
       // read publisher/slot from meta tags; fall back to known values
       // to make testing easier. The publisher ID below matches the one used in
       // index.html (ca-pub-1143269636112950).
-      final client = html.document.head!
-          .querySelector('meta[name="adsense-client"]')
-          ?.getAttribute('content')
-          ?? 'ca-pub-1143269636112950';
-      final slot = html.document.head!
-          .querySelector('meta[name="adsense-slot"]')
-          ?.getAttribute('content')
-          ?? '1234567890';
+      final client =
+          html.document.head!
+              .querySelector('meta[name="adsense-client"]')
+              ?.getAttribute('content') ??
+          'ca-pub-1143269636112950';
+      final slot =
+          html.document.head!
+              .querySelector('meta[name="adsense-slot"]')
+              ?.getAttribute('content') ??
+          '1234567890';
 
       div.innerHtml =
           '<ins class="adsbygoogle" style="display:block" '

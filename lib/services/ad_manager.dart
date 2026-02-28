@@ -6,8 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 // the implementation is swapped at compile time: web -> web_ad_service,
 // others -> stub
-import 'web_ad_service.dart'
-    if (dart.library.io) 'web_ad_service_stub.dart';
+import 'web_ad_service.dart' if (dart.library.io) 'web_ad_service_stub.dart';
 
 class AdManager {
   static InterstitialAd? _interstitialAd;

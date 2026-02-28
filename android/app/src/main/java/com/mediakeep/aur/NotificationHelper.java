@@ -70,7 +70,7 @@ public class NotificationHelper {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, DOWNLOAD_CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_sys_download_done)
-                .setContentTitle("✓ Descarga completada")
+                .setContentTitle("Descarga completada")
                 .setContentText(title != null && !title.isEmpty() ? title : filename)
                 .setContentIntent(mainPendingIntent)
                 .setPriority(NotificationCompat.PRIORITY_LOW)

@@ -1,5 +1,11 @@
 // Platform detection: use Flutter's foundation APIs instead of dart:io so web compile succeeds
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform, debugPrint, VoidCallback;
+import 'package:flutter/foundation.dart'
+    show
+        kIsWeb,
+        defaultTargetPlatform,
+        TargetPlatform,
+        debugPrint,
+        VoidCallback;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

@@ -5,28 +5,24 @@
 *.swp
 .DS_Store
 .atom/
-.build/
 .buildlog/
 .history
 .svn/
-.swiftpm/
 migrate_working_dir/
 
 # IntelliJ related
-*.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
@@ -39,28 +35,18 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android Build artifacts
+/android/.gradle/
+/android/captures/
+/android/local.properties
 /android/app/debug
 /android/app/profile
 /android/app/release
-
-# Flutter Native Generated & Caches (¡No subir auto-generados locales!)
-.flutter-plugins
-.flutter-plugins-dependencies
-
-# Android Caches
-/android/.gradle/
-/android/captures/
-# the wrapper scripts should be checked in so everyone can build the project
-# /android/gradlew
-# /android/gradlew.bat
-/android/local.properties
 /android/**/GeneratedPluginRegistrant.java
 
-# iOS & macOS Caches
+# iOS Build artifacts
 /ios/**/*.mode1v3
 /ios/**/*.pbxuser
-/ios/**/*.xcworkspace/
 /ios/**/xcuserdata/
 /ios/Flutter/App.framework
 /ios/Flutter/Flutter.framework
@@ -73,21 +59,34 @@ app.*.map.json
 /ios/Pods/
 /ios/.symlinks/
 /ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS Build artifacts
 /macos/Flutter/ephemeral/
 /macos/Flutter/GeneratedPluginRegistrant.*
 /macos/Pods/
 
-# Web / Windows / Linux Auto-generated
+# Windows Build artifacts
 /windows/flutter/ephemeral/
 /windows/flutter/generated_plugin_registrant.cc
+
+# Linux Build artifacts
 /linux/flutter/ephemeral/
 /linux/flutter/generated_plugin_registrant.cc
 
-# Archivos Sensibles / Credentials (¡NO SUBIR A GITHUB!)
+# Web Build artifacts
+/web/flutter_bootstrap.js
+
+# ===================================================
+# ARCHIVOS DE CREDENCIALES (¡NUNCA SUBIR A GITHUB!)
+# ===================================================
 *.jks
 *.keystore
-android/key.properties
-google-services.json
-GoogleService-Info.plist
+**/android/key.properties
+**/android/app/google-services.json
+**/ios/GoogleService-Info.plist
+**/ios/Runner/GoogleService-Info.plist
 .env
 .env.*
+**/*.p12
+**/*.pem
+**/*.key

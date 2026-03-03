@@ -35,10 +35,7 @@ void main() async {
 
   // Initialize FlutterDownloader y Ads (Mobile Only: Android / iOS)
   if (AdManager.isMobileAds) {
-    await FlutterDownloader.initialize(
-      debug: true,
-      ignoreSsl: true,
-    );
+    await FlutterDownloader.initialize(debug: true, ignoreSsl: true);
     await MobileAds.instance.initialize();
   }
 

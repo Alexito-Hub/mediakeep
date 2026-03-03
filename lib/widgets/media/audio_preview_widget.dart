@@ -1,6 +1,8 @@
-import 'dart:ui'; // Necesario para ImageFilter
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class AudioPreviewWidget extends StatefulWidget {
   final String? filePath;
@@ -43,8 +45,7 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
       if (mounted) {
         setState(() {
           _isPlaying = state == PlayerState.playing;
-          _isLoading =
-              state == PlayerState.playing && _position == Duration.zero;
+          if (state == PlayerState.playing) _isLoading = false;
         });
       }
     });
@@ -61,7 +62,6 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
       if (mounted) {
         setState(() {
           _position = position;
-          _isLoading = false;
         });
       }
     });
@@ -91,12 +91,20 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
         try {
           if (widget.filePath != null) {
             await _audioPlayer.play(DeviceFileSource(widget.filePath!));
-          } else {
-            await _audioPlayer.play(UrlSource(widget.url!));
+          } else if (widget.url != null) {
+            // Optimización: Intentar obtener audio del cache
+            final fileInfo = await DefaultCacheManager().getFileFromCache(widget.url!);
+            if (fileInfo != null) {
+              await _audioPlayer.play(DeviceFileSource(fileInfo.file.path));
+            } else {
+              await _audioPlayer.play(UrlSource(widget.url!));
+              // Cachear en background
+              DefaultCacheManager().downloadFile(widget.url!);
+            }
           }
         } catch (e) {
-          setState(() => _isLoading = false);
-          // Manejo de error opcional aquí
+          if (mounted) setState(() => _isLoading = false);
+          debugPrint('Error playing audio: $e');
         }
       } else {
         await _audioPlayer.resume();
@@ -135,7 +143,6 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final double maxHeight = constraints.maxHeight;
-        // Si es muy pequeño, usa un layout horizontal (tipo lista)
         final bool isMicro = maxHeight < 120;
         final bool isCompact = maxHeight < 350;
 
@@ -160,26 +167,22 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
             borderRadius: BorderRadius.circular(28),
             child: Stack(
               children: [
-                // 1. Capa de Fondo (Imagen borrosa o color sólido)
                 if (widget.albumCover != null && !isMicro)
                   Positioned.fill(
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.network(
-                          widget.albumCover!,
+                        CachedNetworkImage(
+                          imageUrl: widget.albumCover!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const SizedBox(),
+                          errorWidget: (context, url, error) => const SizedBox(),
                         ),
-                        // Blur effect (Glassmorphism)
                         BackdropFilter(
                           filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                           child: Container(
                             color: colorScheme.surface.withValues(alpha: 0.85),
                           ),
                         ),
-                        // Gradient overlay para legibilidad
                         Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -196,7 +199,6 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
                     ),
                   ),
 
-                // 2. Contenido Principal
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: 20,
@@ -208,25 +210,20 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // Album Art
                             if (widget.albumCover != null &&
                                 maxHeight > 220) ...[
                               _buildAlbumCover(isCompact ? 100 : 160),
                               SizedBox(height: isCompact ? 16 : 24),
                             ],
 
-                            // Info
                             _buildHeader(colorScheme, isCompact),
                             SizedBox(height: isCompact ? 12 : 24),
 
-                            // Slider & Times
                             _buildProgressBar(colorScheme, isCompact),
                             SizedBox(height: isCompact ? 8 : 16),
 
-                            // Controls
                             _buildControls(colorScheme, isCompact),
 
-                            // Badge
                             if (widget.isPreview && !isCompact) ...[
                               const Spacer(),
                               _buildPreviewBadge(colorScheme),
@@ -242,7 +239,6 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
     );
   }
 
-  // Layout para cuando el widget es muy bajito (estilo fila)
   Widget _buildMicroLayout(ColorScheme colorScheme) {
     return Row(
       children: [
@@ -305,11 +301,11 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: widget.albumCover != null
-              ? Image.network(
-                  widget.albumCover!,
+              ? CachedNetworkImage(
+                  imageUrl: widget.albumCover!,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      _buildPlaceholder(size),
+                  placeholder: (context, url) => _buildPlaceholder(size),
+                  errorWidget: (context, url, error) => _buildPlaceholder(size),
                 )
               : _buildPlaceholder(size),
         ),
@@ -425,7 +421,6 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Replay 10s
         IconButton(
           onPressed: () => _seekRelative(-10),
           icon: const Icon(Icons.replay_10_rounded),
@@ -436,7 +431,6 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
 
         const SizedBox(width: 16),
 
-        // Play/Pause Button
         Container(
           width: playSize,
           height: playSize,
@@ -480,7 +474,6 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
 
         const SizedBox(width: 16),
 
-        // Forward 10s
         IconButton(
           onPressed: () => _seekRelative(10),
           icon: const Icon(Icons.forward_10_rounded),

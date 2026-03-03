@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:cached_network_image/cached_network_image.dart';
 import '../media/video_preview_widget.dart';
 
 class ContentPreview extends StatefulWidget {
@@ -61,12 +62,20 @@ class _ContentPreviewState extends State<ContentPreview> {
         ? 'https://corsproxy.io/?${Uri.encodeComponent(url)}'
         : url;
 
-    return Image.network(
-      imageUrl,
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
       width: width,
       height: height,
       fit: fit,
-      errorBuilder: (context, error, stackTrace) => Container(
+      placeholder: (context, url) => Container(
+        width: width,
+        height: height,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: const Center(
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
         width: width,
         height: height,
         color: Theme.of(context).colorScheme.surfaceContainerHighest,

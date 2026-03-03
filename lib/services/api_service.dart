@@ -64,6 +64,20 @@ class ApiService {
           .timeout(AppConstants.apiTimeout);
 
       if (response.statusCode != 200) {
+        // Parse the body even on error responses to detect limit codes (backend returns 403)
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData['code'] == 'AUTH_LIMIT_REACHED' ||
+              errorData['code'] == 'UNAUTH_LIMIT_REACHED') {
+            return ApiResponse.error(
+              errorData['msg'] ?? 'Límite alcanzado',
+              limitReached: true,
+            );
+          }
+          if (errorData['msg'] != null) {
+            return ApiResponse.error(errorData['msg']);
+          }
+        } catch (_) {}
         return ApiResponse.error(
           'Error del servidor (${response.statusCode}). Intenta más tarde.',
         );

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'dart:async';
 import '../../services/adblock/adblock_detector.dart';
 import '../../services/ad_manager.dart';
@@ -18,9 +20,19 @@ class _AdBlockGuardState extends State<AdBlockGuard> {
   @override
   void initState() {
     super.initState();
+    // Only run ad-block detection on platforms that actually serve ads.
+    if (!_adSupportedPlatform) return;
     _checkAdBlock();
     // Vigilancia constante cada 3 segundos
     _timer = Timer.periodic(const Duration(seconds: 3), (_) => _checkAdBlock());
+  }
+
+  /// Returns true only on platforms where Google Mobile Ads / AdSense are used.
+  bool get _adSupportedPlatform {
+    if (kIsWeb) return true;
+    if (defaultTargetPlatform == TargetPlatform.android) return true;
+    if (defaultTargetPlatform == TargetPlatform.iOS) return true;
+    return false;
   }
 
   Future<void> _checkAdBlock() async {

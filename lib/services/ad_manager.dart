@@ -8,16 +8,22 @@ import 'package:flutter/foundation.dart'
         VoidCallback;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart' as firebase_core;
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-// the implementation is swapped at compile time: web -> web_ad_service,
-// others -> stub
-import 'web_ad_service.dart' if (dart.library.io) 'web_ad_service_stub.dart';
 
 class AdManager {
   static InterstitialAd? _interstitialAd;
   static int _numInterstitialLoadAttempts = 0;
   static const int maxFailedLoadAttempts = 3;
+
+  /// True only on platforms where the google_mobile_ads plugin is available.
+  static bool get isMobileAds =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
+  // Private alias kept for internal use.
+  static bool get _isMobileAds => isMobileAds;
 
   /// Retorna si el usuario está actualmente activo bajo una suscripción/compra Premium.
   /// Los usuarios Premium reciben un "bypass" nativo que neutraliza todas las llamadas a anuncios.
@@ -25,7 +31,19 @@ class AdManager {
     // Si la plataforma actual no soporta GoogleMobileAds (Ej: Web/Windows), evitamos renderizado.
     // Aunque en Web usamos AdSense, el flag de isPremium se reutiliza.
 
-    final user = FirebaseAuth.instance.currentUser;
+    // Guard: if Firebase hasn't been initialised (e.g. Linux desktop), bail out.
+    try {
+      if (firebase_core.Firebase.apps.isEmpty) return false;
+    } catch (_) {
+      return false;
+    }
+
+    final User? user;
+    try {
+      user = FirebaseAuth.instance.currentUser;
+    } catch (_) {
+      return false;
+    }
     if (user != null) {
       // Verificamos el plan
       try {
@@ -73,13 +91,9 @@ class AdManager {
   /// Instancia un banner y exige un callback estricto cuando termine de cargar
   /// para inyectarlo en el árbol de widgets de forma segura.
   static Future<BannerAd?> loadBanner(VoidCallback onLoaded) async {
-    // web uses a different mechanism (see WebAdService)
-    if (kIsWeb) {
-      // web banner is handled by WebAdService; a widget placed with
-      // `WebBannerAd()` will call `init()` and `pushAd` itself.
-      WebAdService.init();
-      return null;
-    }
+    // Plugin not available on web or desktop — those platforms are handled
+    // by WebAdView (AdSense) and with no ads respectively.
+    if (!_isMobileAds) return null;
 
     if (await isPremium()) return null; // Bypass
 
@@ -106,8 +120,8 @@ class AdManager {
   /// Carga y mantiene en memoria un anuncio a pantalla completa
   /// para ser invocado sin latencia cuando se requiera.
   static Future<void> createInterstitialAd() async {
-    // plugin not supported on web; avoid runtime exception
-    if (kIsWeb) return;
+    // plugin not supported on web or desktop
+    if (!_isMobileAds) return;
     if (await isPremium()) return; // Bypass
 
     InterstitialAd.load(
@@ -148,7 +162,7 @@ class AdManager {
 
   /// Carga el anuncio App Open en memoria
   static Future<void> loadAppOpenAd() async {
-    if (kIsWeb) return; // no AppOpenAd on web
+    if (!_isMobileAds) return; // only Android / iOS
     if (await isPremium()) return;
 
     AppOpenAd.load(
@@ -171,7 +185,7 @@ class AdManager {
   /// Muestra el anuncio App Open si está listo y no ha expirado (max 4 horas)
   static Future<void> showAppOpenAdIfAvailable() async {
     // quick early checks
-    if (kIsWeb) return;
+    if (!_isMobileAds) return;
     if (await isPremium()) return;
 
     try {
@@ -224,7 +238,7 @@ class AdManager {
   /// Muestra el anuncio en pantalla completa consumiendo la memoria
   /// reservada y encolando una nueva precarga para el futuro.
   static Future<void> showInterstitialAd() async {
-    if (kIsWeb) return; // no interstitials on web
+    if (!_isMobileAds) return; // only Android / iOS
     if (await isPremium() || _interstitialAd == null) {
       return; // Bypass o faltante
     }
@@ -270,7 +284,7 @@ class AdManager {
 
   /// Carga el anuncio bonificado en memoria para tenerlo listo
   static void loadRewardedAd() {
-    if (kIsWeb) return;
+    if (!_isMobileAds) return;
     RewardedAd.load(
       adUnitId: rewardedAdUnitId,
       request: const AdRequest(),
@@ -294,7 +308,7 @@ class AdManager {
 
   /// Muestra el anuncio bonificado y ejecuta un callback al completarse exitosamente
   static void showRewardedAd(Function(num amount) onEarnedReward) {
-    if (kIsWeb) return;
+    if (!_isMobileAds) return;
     if (_rewardedAd == null) {
       debugPrint('Warning: attempt to show rewarded before loaded.');
       // Attempt to load for next time
@@ -344,7 +358,7 @@ class AdManager {
 
   /// Carga un anuncio Intersticial Bonificado (se abre a pantalla completa automático)
   static void loadRewardedInterstitialAd() {
-    if (kIsWeb) return;
+    if (!_isMobileAds) return;
     RewardedInterstitialAd.load(
       adUnitId: rewardedInterstitialAdUnitId,
       request: const AdRequest(),
@@ -368,7 +382,7 @@ class AdManager {
 
   /// Muestra el anuncio intersticial bonificado que requiere menos fricción
   static void showRewardedInterstitialAd(Function onEarnedReward) {
-    if (kIsWeb) return;
+    if (!_isMobileAds) return;
     if (_rewardedInterstitialAd == null) {
       debugPrint(
         'Warning: attempt to show rewarded interstitial before loaded.',
@@ -418,7 +432,7 @@ class AdManager {
 
   /// Instancia un NativeAd que encaja en el diseño nativo de la app
   static Future<NativeAd?> loadNativeAd(VoidCallback onLoaded) async {
-    if (kIsWeb) return null; // not supported
+    if (!_isMobileAds) return null; // not supported on web/desktop
     if (await isPremium()) return null; // Bypass prmium
 
     final nativeAd = NativeAd(

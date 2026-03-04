@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../utils/responsive.dart';
+import '../utils/app_routes.dart';
+import '../widgets/layout/responsive_shell_scaffold.dart';
 import '../widgets/auth/google_button.dart';
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
+  /// Optional callback invoked after a successful login/register.
+  /// Use this to trigger a deferred action (e.g. process a pending purchase).
+  final VoidCallback? onAuthSuccess;
+
+  const AuthScreen({super.key, this.onAuthSuccess});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -51,8 +58,9 @@ class _AuthScreenState extends State<AuthScreen> {
         }
       }
 
+      TextInput.finishAutofillContext();
       if (mounted) {
-        Navigator.pop(context); // Return to previous screen
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -61,6 +69,7 @@ class _AuthScreenState extends State<AuthScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        widget.onAuthSuccess?.call();
       }
     } on FirebaseAuthException catch (e) {
       _showError(e.message ?? 'Error de autenticación.');
@@ -111,11 +120,17 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           );
           if (Navigator.canPop(context)) Navigator.pop(context);
+          widget.onAuthSuccess?.call();
         }
       }
     } on FirebaseAuthException catch (e) {
       _showError(e.message ?? 'Error autenticando con Google.');
     } catch (e) {
+      final msg = e.toString();
+      // popup_closed = user dismissed the dialog intentionally, not an error
+      if (msg.contains('popup_closed') || msg.contains('popup-closed')) {
+        return;
+      }
       _showError('Error inesperado al conectar con Google.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -131,83 +146,101 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(_isLogin ? 'Iniciar Sesión' : 'Crear Cuenta')),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: Responsive.getContentPadding(context),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Correo',
-                        prefixIcon: Icon(Icons.email),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _passwordController,
-                      decoration: const InputDecoration(
-                        labelText: 'Contraseña',
-                        prefixIcon: Icon(Icons.lock),
-                      ),
-                      obscureText: true,
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: FilledButton(
-                        onPressed: _isLoading ? null : _submit,
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : Text(
-                                _isLogin ? 'Ingresar' : 'Registrarse',
-                                style: const TextStyle(fontSize: 16),
+    return ResponsiveShellScaffold(
+      title: _isLogin ? 'Iniciar Sesión' : 'Crear Cuenta',
+      currentRoute: AppRoutes.auth,
+      extendBodyBehindAppBar: true,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: Responsive.getContentPadding(context),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AutofillGroup(
+                        child: Column(
+                          children: [
+                            TextField(
+                              controller: _emailController,
+                              autofillHints: const [
+                                AutofillHints.email,
+                                AutofillHints.username,
+                              ],
+                              decoration: const InputDecoration(
+                                labelText: 'Correo',
+                                prefixIcon: Icon(Icons.email),
                               ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: const [
-                        Expanded(child: Divider()),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('O'),
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _passwordController,
+                              autofillHints: const [AutofillHints.password],
+                              decoration: const InputDecoration(
+                                labelText: 'Contraseña',
+                                prefixIcon: Icon(Icons.lock),
+                              ),
+                              obscureText: true,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) => _isLoading ? null : _submit(),
+                            ),
+                          ],
                         ),
-                        Expanded(child: Divider()),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    buildGoogleSignInButton(
-                      isLoading: _isLoading,
-                      onPressed: _signInWithGoogle,
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => setState(() => _isLogin = !_isLogin),
-                      child: Text(
-                        _isLogin
-                            ? '¿No tienes cuenta? Regístrate.'
-                            : '¿Ya tienes cuenta? Inicia sesión.',
                       ),
-                    ),
-                    if (_isLogin)
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: FilledButton(
+                          onPressed: _isLoading ? null : _submit,
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : Text(
+                                  _isLogin ? 'Ingresar' : 'Registrarse',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: const [
+                          Expanded(child: Divider()),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            child: Text('O'),
+                          ),
+                          Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      buildGoogleSignInButton(
+                        isLoading: _isLoading,
+                        onPressed: _signInWithGoogle,
+                      ),
+                      const SizedBox(height: 16),
                       TextButton(
-                        onPressed: _isLoading ? null : _resetPassword,
-                        child: const Text('¿Olvidaste tu contraseña?'),
+                        onPressed: () => setState(() => _isLogin = !_isLogin),
+                        child: Text(
+                          _isLogin
+                              ? '¿No tienes cuenta? Regístrate.'
+                              : '¿Ya tienes cuenta? Inicia sesión.',
+                        ),
                       ),
-                  ],
+                      if (_isLogin)
+                        TextButton(
+                          onPressed: _isLoading ? null : _resetPassword,
+                          child: const Text('¿Olvidaste tu contraseña?'),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../utils/responsive.dart';
+import '../utils/app_routes.dart';
+import '../widgets/layout/responsive_shell_scaffold.dart';
 import 'media_preview_screen.dart';
 
 /// Displays all active and recently completed background downloads.
@@ -88,147 +90,152 @@ class _ActiveDownloadsScreenState extends State<ActiveDownloadsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Descargas Activas'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Actualizar',
-            onPressed: _loadTasks,
-          ),
-        ],
-      ),
-      body: kIsWeb
-          ? const Center(
-              child: Text(
-                'Las descargas en segundo plano no están disponibles en la versión web.',
-                textAlign: TextAlign.center,
-              ),
-            )
-          : _tasks.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.cloud_done_outlined,
-                    size: 80,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No hay descargas activas',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    return ResponsiveShellScaffold(
+      title: 'Descargas Activas',
+      currentRoute: AppRoutes.activeDownloads,
+      extendBodyBehindAppBar: true,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh_rounded),
+          tooltip: 'Actualizar',
+          onPressed: _loadTasks,
+        ),
+      ],
+      body: SafeArea(
+        child: kIsWeb
+            ? const Center(
+                child: Text(
+                  'Las descargas en segundo plano no están disponibles en la versión web.',
+                  textAlign: TextAlign.center,
+                ),
+              )
+            : _tasks.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.cloud_done_outlined,
+                      size: 80,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.5),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Las descargas iniciadas aparecerán aquí',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    const SizedBox(height: 16),
+                    Text(
+                      'No hay descargas activas',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: Responsive.getContentPadding(context),
-              itemCount: _tasks.length,
-              itemBuilder: (context, index) {
-                final task = _tasks[index];
-                final isRunning = task.status == DownloadTaskStatus.running;
-                final isComplete = task.status == DownloadTaskStatus.complete;
-                final isFailed = task.status == DownloadTaskStatus.failed;
+                    const SizedBox(height: 8),
+                    Text(
+                      'Las descargas iniciadas aparecerán aquí',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : ListView.builder(
+                padding: Responsive.getContentPadding(context),
+                itemCount: _tasks.length,
+                itemBuilder: (context, index) {
+                  final task = _tasks[index];
+                  final isRunning = task.status == DownloadTaskStatus.running;
+                  final isComplete = task.status == DownloadTaskStatus.complete;
+                  final isFailed = task.status == DownloadTaskStatus.failed;
 
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              isComplete
-                                  ? Icons.check_circle_rounded
-                                  : isFailed
-                                  ? Icons.error_rounded
-                                  : Icons.downloading_rounded,
-                              color: _statusColor(task.status, context),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                task.filename ?? 'Archivo descargando...',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        if (isRunning) ...[
-                          LinearProgressIndicator(
-                            value: task.progress / 100,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                        Row(
-                          children: [
-                            Text(
-                              _statusLabel(task.status, task.progress),
-                              style: TextStyle(
-                                fontSize: 12,
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                isComplete
+                                    ? Icons.check_circle_rounded
+                                    : isFailed
+                                    ? Icons.error_rounded
+                                    : Icons.downloading_rounded,
                                 color: _statusColor(task.status, context),
-                                fontWeight: FontWeight.w500,
+                                size: 20,
                               ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  task.filename ?? 'Archivo descargando...',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          if (isRunning) ...[
+                            LinearProgressIndicator(
+                              value: task.progress / 100,
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                            const Spacer(),
-                            if (isComplete)
-                              TextButton.icon(
-                                icon: const Icon(
-                                  Icons.open_in_new_rounded,
-                                  size: 16,
-                                ),
-                                label: const Text('Ver'),
-                                onPressed: () =>
-                                    _openFile(task.savedDir, task.filename),
-                              ),
-                            if (isFailed)
-                              TextButton.icon(
-                                icon: const Icon(
-                                  Icons.refresh_rounded,
-                                  size: 16,
-                                ),
-                                label: const Text('Reintentar'),
-                                onPressed: () => _retryTask(task.taskId),
-                              ),
-                            if (!isComplete)
-                              IconButton(
-                                icon: const Icon(Icons.close_rounded, size: 20),
-                                tooltip: 'Cancelar',
-                                onPressed: () => _cancelTask(task.taskId),
-                              ),
+                            const SizedBox(height: 4),
                           ],
-                        ),
-                      ],
+                          Row(
+                            children: [
+                              Text(
+                                _statusLabel(task.status, task.progress),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _statusColor(task.status, context),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (isComplete)
+                                TextButton.icon(
+                                  icon: const Icon(
+                                    Icons.open_in_new_rounded,
+                                    size: 16,
+                                  ),
+                                  label: const Text('Ver'),
+                                  onPressed: () =>
+                                      _openFile(task.savedDir, task.filename),
+                                ),
+                              if (isFailed)
+                                TextButton.icon(
+                                  icon: const Icon(
+                                    Icons.refresh_rounded,
+                                    size: 16,
+                                  ),
+                                  label: const Text('Reintentar'),
+                                  onPressed: () => _retryTask(task.taskId),
+                                ),
+                              if (!isComplete)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.close_rounded,
+                                    size: 20,
+                                  ),
+                                  tooltip: 'Cancelar',
+                                  onPressed: () => _cancelTask(task.taskId),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
+      ),
     );
   }
 }

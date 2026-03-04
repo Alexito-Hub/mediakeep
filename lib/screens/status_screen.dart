@@ -4,6 +4,8 @@ import '../services/status_service.dart';
 import '../services/settings_service.dart';
 import '../models/status_model.dart';
 import '../utils/responsive.dart';
+import '../utils/app_routes.dart';
+import '../widgets/layout/responsive_shell_scaffold.dart';
 import '../utils/platform_config.dart';
 import 'package:intl/intl.dart';
 
@@ -72,44 +74,55 @@ class _StatusScreenState extends State<StatusScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Estado del Sistema'),
-        actions: [
+    return ResponsiveShellScaffold(
+      title: 'Estado del Sistema',
+      currentRoute: AppRoutes.status,
+      extendBodyBehindAppBar: true,
+      actions: [
+        if (Responsive.isMobile(context))
           IconButton(
             onPressed: _fetchStatus,
             icon: const Icon(Icons.refresh),
             tooltip: 'Actualizar',
           ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _fetchStatus,
-        child: _isLoading
-            ? _buildLoadingState()
-            : _errorMessage != null
-            ? _buildErrorState()
-            : ListView(
+      ],
+      body: _isLoading
+          ? _buildLoadingState()
+          : _errorMessage != null
+          ? _buildErrorState()
+          : Responsive.isMobile(context)
+          ? RefreshIndicator(
+              onRefresh: _fetchStatus,
+              child: ListView(
                 padding: Responsive.getContentPadding(context),
                 children: [
-                  _buildHeaderBanner(theme),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle('Configuración de la App'),
-                  _buildAppSettingsCard(theme),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle('Salud del Servidor'),
-                  _buildServerHealthCard(theme, isDark),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle('Estado de Plataformas'),
-                  _buildInstructions(theme),
-                  const SizedBox(height: 8),
-                  ..._platformStatuses.map(
-                    (s) => _buildPlatformTile(s, theme, isDark),
+                  SafeArea(
+                    bottom: false,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildHeaderBanner(theme),
+                        const SizedBox(height: 24),
+                        _buildSectionTitle('Configuración de la App'),
+                        _buildAppSettingsCard(theme),
+                        const SizedBox(height: 24),
+                        _buildSectionTitle('Salud del Servidor'),
+                        _buildServerHealthCard(theme, isDark),
+                        const SizedBox(height: 24),
+                        _buildSectionTitle('Estado de Plataformas'),
+                        _buildInstructions(theme),
+                        const SizedBox(height: 8),
+                        ..._platformStatuses.map(
+                          (s) => _buildPlatformTile(s, theme, isDark),
+                        ),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 40),
                 ],
               ),
-      ),
+            )
+          : _buildDesktopStatusBody(theme, isDark),
     );
   }
 
@@ -621,21 +634,166 @@ class _StatusScreenState extends State<StatusScreen> {
     );
   }
 
+  // ── Desktop: 2-column dashboard layout ─────────────────────────────────────
+  Widget _buildDesktopStatusBody(ThemeData theme, bool isDark) {
+    return SingleChildScrollView(
+      padding: Responsive.kDesktop,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title row with refresh button
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Estado del Sistema',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: _fetchStatus,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Actualizar'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildHeaderBanner(theme),
+          const SizedBox(height: 32),
+          // Two-column layout: left cards + right platforms
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Left column: health cards ──────────────────────────
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildSectionTitle('Configuración de la App'),
+                    const SizedBox(height: 8),
+                    _buildAppSettingsCard(theme),
+                    const SizedBox(height: 24),
+                    _buildSectionTitle('Salud del Servidor'),
+                    const SizedBox(height: 8),
+                    _buildServerHealthCard(theme, isDark),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              // ── Right column: platform status list ─────────────────
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildSectionTitle('Estado de Plataformas'),
+                    const SizedBox(height: 8),
+                    _buildInstructions(theme),
+                    const SizedBox(height: 8),
+                    ..._platformStatuses.map(
+                      (s) => _buildPlatformTile(s, theme, isDark),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLoadingState() {
+    if (!Responsive.isMobile(context)) {
+      // Desktop: mirror the 2-column real layout
+      return SingleChildScrollView(
+        padding: Responsive.kDesktop,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _buildShimmerBox(width: 220, height: 30),
+                const Spacer(),
+                _buildShimmerBox(width: 100, height: 36, borderRadius: 8),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildShimmerBanner(),
+            const SizedBox(height: 32),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildShimmerSection('Configuracion de la App'),
+                      _buildShimmerCard(),
+                      const SizedBox(height: 24),
+                      _buildShimmerSection('Salud del Servidor'),
+                      _buildShimmerCard(),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildShimmerSection('Estado de Plataformas'),
+                      const SizedBox(height: 8),
+                      ...[
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                      ].map((_) => _buildShimmerPlatformCard()),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+    // Mobile
     return ListView(
       padding: Responsive.getContentPadding(context),
       children: [
-        _buildShimmerBanner(),
-        const SizedBox(height: 24),
-        _buildShimmerSection('Configuracion de la App'),
-        _buildShimmerCard(),
-        const SizedBox(height: 24),
-        _buildShimmerSection('Salud del Servidor'),
-        _buildShimmerCard(),
-        const SizedBox(height: 24),
-        _buildShimmerSection('Estado de Plataformas'),
-        const SizedBox(height: 8),
-        ...[1, 2, 3, 4, 5].map((i) => _buildShimmerPlatformCard()),
+        SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildShimmerBanner(),
+              const SizedBox(height: 24),
+              _buildShimmerSection('Configuracion de la App'),
+              _buildShimmerCard(),
+              const SizedBox(height: 24),
+              _buildShimmerSection('Salud del Servidor'),
+              _buildShimmerCard(),
+              const SizedBox(height: 24),
+              _buildShimmerSection('Estado de Plataformas'),
+              const SizedBox(height: 8),
+              ...[1, 2, 3, 4, 5].map((_) => _buildShimmerPlatformCard()),
+            ],
+          ),
+        ),
       ],
     );
   }

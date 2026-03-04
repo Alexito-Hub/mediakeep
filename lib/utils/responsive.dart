@@ -22,9 +22,15 @@ class Responsive {
     return double.infinity;
   }
 
+  /// Standard desktop inner-content padding used across all screens.
+  static const EdgeInsets kDesktop = EdgeInsets.symmetric(
+    horizontal: 40,
+    vertical: 32,
+  );
+
   /// Get content padding based on screen size
   static EdgeInsets getContentPadding(BuildContext context) {
-    if (isDesktop(context)) return const EdgeInsets.all(32);
+    if (isDesktop(context)) return kDesktop;
     if (isTablet(context)) return const EdgeInsets.all(24);
     return const EdgeInsets.all(16);
   }

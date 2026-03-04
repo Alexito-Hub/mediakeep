@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
@@ -12,10 +13,18 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'screens/history_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/download_screen.dart';
+import 'screens/active_downloads_screen.dart';
+import 'screens/status_screen.dart';
+import 'screens/changelog_screen.dart';
+import 'screens/privacy_screen.dart';
+import 'screens/author_screen.dart';
+import 'screens/checkout_screen.dart';
+import 'screens/auth_screen.dart';
 import 'services/settings_service.dart';
 import 'services/widget_service.dart';
 import 'services/quick_actions_service.dart';
 import 'utils/platform_detector.dart';
+import 'utils/app_routes.dart';
 import 'services/api_service.dart';
 import 'services/download_service.dart';
 import 'services/history_service.dart';
@@ -65,6 +74,8 @@ void main() async {
   if (DateTime.now().year < 2000) {
     backgroundMain();
   }
+
+  if (kIsWeb) usePathUrlStrategy();
 
   runApp(const DownloaderApp());
 }
@@ -187,6 +198,7 @@ class DownloaderAppState extends State<DownloaderApp>
         textTheme: GoogleFonts.outfitTextTheme(ThemeData.light().textTheme),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
           scrolledUnderElevation: 0,
@@ -254,6 +266,7 @@ class DownloaderAppState extends State<DownloaderApp>
         textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
           scrolledUnderElevation: 0,
@@ -307,7 +320,47 @@ class DownloaderAppState extends State<DownloaderApp>
       themeMode: _themeMode,
       navigatorKey: navigatorKey,
       builder: (context, child) => AdBlockGuard(child: child!),
-      home: const DownloadScreen(),
+      initialRoute: AppRoutes.download,
+      onGenerateRoute: (settings) {
+        Widget page;
+        switch (settings.name) {
+          case AppRoutes.download:
+            page = const DownloadScreen();
+          case AppRoutes.history:
+            page = const HistoryScreen();
+          case AppRoutes.activeDownloads:
+            page = const ActiveDownloadsScreen();
+          case AppRoutes.settings:
+            page = const SettingsScreen();
+          case AppRoutes.status:
+            page = const StatusScreen();
+          case AppRoutes.changelog:
+            page = const ChangelogScreen();
+          case AppRoutes.privacy:
+            page = const PrivacyScreen();
+          case AppRoutes.author:
+            page = const AuthorScreen();
+          case AppRoutes.checkout:
+            page = const CheckoutScreen();
+          case AppRoutes.auth:
+            page = const AuthScreen();
+          default:
+            return null;
+        }
+        return PageRouteBuilder(
+          settings: settings,
+          pageBuilder: (_, __, ___) => page,
+          transitionsBuilder: (_, animation, __, child) => FadeTransition(
+            opacity: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeInOut,
+            ),
+            child: child,
+          ),
+          transitionDuration: const Duration(milliseconds: 200),
+          reverseTransitionDuration: const Duration(milliseconds: 150),
+        );
+      },
       debugShowCheckedModeBanner: false,
     );
   }

@@ -142,6 +142,9 @@ flutter:
   assets:
     - pubspec.yaml
     - assets/changelog.json
+    - assets/logo.jpg
+    - assets/logo-nobg-white.png
+    - assets/logo-nobg-black.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

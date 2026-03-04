@@ -3,6 +3,13 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'firestore_service.dart';
 
+// Sets LOCAL persistence once on web so Google / email sessions survive browser restarts.
+Future<void> _ensurePersistence(FirebaseAuth auth) async {
+  if (kIsWeb) {
+    await auth.setPersistence(Persistence.LOCAL);
+  }
+}
+
 // A simple wrapper around FirebaseAuth + Google Sign-In. All logic that
 // previously lived inside AuthScreen has been factored here so the UI can be
 // a thin layer and the API used from other places in the app if necessary.
@@ -32,6 +39,7 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    await _ensurePersistence(_auth);
     final credential = await _auth.signInWithEmailAndPassword(
       email: email,
       password: password,
@@ -46,6 +54,7 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    await _ensurePersistence(_auth);
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
@@ -70,6 +79,7 @@ class AuthService {
   /// return null if the user cancels the dialog.
   static Future<UserCredential?> signInWithGoogle() async {
     try {
+      await _ensurePersistence(_auth);
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) return null; // user aborted the flow
 

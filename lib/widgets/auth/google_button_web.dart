@@ -6,8 +6,27 @@ Widget buildGoogleSignInButton({
   required VoidCallback onPressed,
   bool isLoading = false,
 }) {
-  return ConstrainedBox(
-    constraints: const BoxConstraints(maxWidth: double.infinity, minHeight: 50),
-    child: (GoogleSignInPlatform.instance as GoogleSignInPlugin).renderButton(),
+  try {
+    final plugin = GoogleSignInPlatform.instance as GoogleSignInPlugin;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        maxWidth: double.infinity,
+        minHeight: 50,
+      ),
+      child: plugin.renderButton(),
+    );
+  } catch (_) {}
+  // Fallback: plugin not yet initialized or not available
+  return SizedBox(
+    width: double.infinity,
+    height: 50,
+    child: OutlinedButton.icon(
+      onPressed: isLoading ? null : onPressed,
+      icon: const Icon(Icons.login_rounded),
+      label: const Text('Continuar con Google'),
+      style: OutlinedButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    ),
   );
 }

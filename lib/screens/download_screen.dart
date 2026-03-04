@@ -20,6 +20,7 @@ import '../../services/adblock_detector.dart';
 import '../utils/platform_detector.dart';
 import '../utils/constants.dart';
 import '../utils/responsive.dart';
+import '../utils/app_routes.dart';
 import '../utils/platform_config.dart';
 import '../widgets/dialogs/share_dialog.dart';
 import '../widgets/result_cards/tiktok_result_card.dart';
@@ -37,8 +38,8 @@ import 'active_downloads_screen.dart';
 import '../services/history_service.dart';
 import '../services/ad_manager.dart';
 import '../widgets/ad_banner.dart';
+import '../widgets/layout/responsive_shell_scaffold.dart';
 import 'auth_screen.dart';
-import 'media_preview_screen.dart';
 
 /// Main download screen
 class DownloadScreen extends StatefulWidget {
@@ -519,58 +520,56 @@ class _DownloadScreenState extends State<DownloadScreen> {
   Widget build(BuildContext context) {
     // Gradient removed for cleaner UI as per user request
 
-    return Scaffold(
+    return ResponsiveShellScaffold(
+      title: 'Media Keep',
+      currentRoute: AppRoutes.download,
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text('Media Keep'),
-        actions: [
-          // Active downloads badge
-          if (_isDownloading)
-            Stack(
-              alignment: Alignment.topRight,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.downloading_rounded),
-                  tooltip: 'Descargas activas',
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ActiveDownloadsScreen(),
-                    ),
+      actions: [
+        if (_isDownloading)
+          Stack(
+            alignment: Alignment.topRight,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.downloading_rounded),
+                tooltip: 'Descargas activas',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ActiveDownloadsScreen(),
                   ),
                 ),
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
+              ),
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
                   ),
                 ),
-              ],
-            ),
-          IconButton(
-            icon: const Icon(Icons.history_rounded),
-            tooltip: 'Historial',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HistoryScreen()),
-            ),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.settings_rounded),
-            tooltip: 'Ajustes',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            ),
+        IconButton(
+          icon: const Icon(Icons.history_rounded),
+          tooltip: 'Historial',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const HistoryScreen()),
           ),
-        ],
-      ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.settings_rounded),
+          tooltip: 'Ajustes',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+          ),
+        ),
+      ],
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (Responsive.isMobile(context)) {
@@ -615,57 +614,69 @@ class _DownloadScreenState extends State<DownloadScreen> {
     );
   }
 
-  /// Tablet / Desktop layout: 2-column Row.
-  /// Left panel: input + result card (flexible).
-  /// Right panel: recent history sidebar (fixed 320px).
+  /// Desktop layout: centered hero when idle, split view when result available.
   Widget _buildWideBody() {
-    final isDesktop = Responsive.isDesktop(context);
-    final sidebarWidth = isDesktop ? 360.0 : 300.0;
+    final theme = Theme.of(context);
+    final hasContent = _hasResult() || _loading;
 
-    return SafeArea(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Left: main input + result ──────────────────────────────────
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: Responsive.getContentPadding(context),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 700),
-                    child: Column(
-                      children: [
-                        _buildInputCard(true),
-                        const SizedBox(height: 20),
-                        if (_loading)
-                          const ShimmerResultCard()
-                        else if (!_hasResult())
-                          _buildEmptyState(true)
-                        else
-                          _buildResultCard(true),
-                        const SizedBox(height: 80),
-                      ],
-                    ),
+    if (!hasContent) {
+      // ── No result yet: focused centered layout ──────────────────────────
+      return SingleChildScrollView(
+        padding: Responsive.kDesktop,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Descargar Contenido',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
+                const SizedBox(height: 6),
+                Text(
+                  'Pega un enlace de TikTok, Instagram, YouTube y más',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                _buildInputCard(true),
+                const SizedBox(height: 24),
+                _buildEmptyState(true),
+              ],
             ),
           ),
-          // ── Divider ────────────────────────────────────────────────────
-          VerticalDivider(
-            width: 1,
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      );
+    }
+
+    // ── Has result: split — input left, result right ───────────────────────
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(40, 32, 24, 32),
+            child: _buildInputCard(true),
           ),
-          // ── Right: history sidebar  ────────────────────────────────────
-          RepaintBoundary(
-            child: SizedBox(width: sidebarWidth, child: _buildHistorySidebar()),
+        ),
+        VerticalDivider(
+          width: 1,
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 32, 40, 32),
+            child: _loading
+                ? const ShimmerResultCard()
+                : _buildResultCard(true),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -678,122 +689,6 @@ class _DownloadScreenState extends State<DownloadScreen> {
         _bilibiliData != null ||
         _instagramData != null ||
         _twitterData != null;
-  }
-
-  /// Compact history sidebar shown on tablet/desktop,
-  /// displays the 8 most recent downloads without navigating.
-  Widget _buildHistorySidebar() {
-    return FutureBuilder(
-      future: HistoryService.getHistory(),
-      builder: (context, snapshot) {
-        final items = snapshot.data ?? [];
-        return CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverAppBar(
-              automaticallyImplyLeading: false,
-              pinned: true,
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              title: Text(
-                'Recientes',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const HistoryScreen()),
-                  ),
-                  child: const Text('Ver todo'),
-                ),
-              ],
-            ),
-            if (items.isEmpty)
-              const SliverFillRemaining(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.history_rounded, size: 48, color: Colors.grey),
-                      SizedBox(height: 12),
-                      Text(
-                        'Sin descargas aún',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              SliverList.builder(
-                itemCount: items.take(20).length,
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  return _buildSidebarHistoryTile(item);
-                },
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildSidebarHistoryTile(dynamic item) {
-    IconData icon;
-    Color color;
-    switch (item.type) {
-      case 'video':
-        icon = Icons.movie_creation_rounded;
-        color = Colors.redAccent;
-        break;
-      case 'audio':
-        icon = Icons.music_note_rounded;
-        color = Colors.greenAccent.shade700;
-        break;
-      default:
-        icon = Icons.image_rounded;
-        color = Colors.blueAccent;
-    }
-
-    return RepaintBoundary(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.12),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        title: Text(
-          item.fileName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          item.platformName ?? item.platform,
-          style: TextStyle(
-            fontSize: 11,
-            color: Theme.of(context).colorScheme.outline,
-          ),
-        ),
-        trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-        onTap: () {
-          AdManager.showInterstitialAd();
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MediaPreviewScreen(
-                filePath: item.filePath,
-                fileName: item.fileName,
-                fileType: item.type,
-                platform: item.platformName,
-              ),
-            ),
-          );
-        },
-      ),
-    );
   }
 
   Widget? _buildAdBanner() => const AdBanner();

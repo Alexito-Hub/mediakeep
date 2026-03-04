@@ -38,13 +38,8 @@ class AdManager {
         }
       } on FirebaseException catch (e) {
         debugPrint('Error getting premium status: $e');
-        if (e.code == 'permission-denied') {
-          // Authentication token might be invalid; sign out to force re-login
-          await FirebaseAuth.instance.signOut();
-          debugPrint(
-            'Signed out due to permission error, user must reauthenticate',
-          );
-        }
+        // Do NOT sign out on permission-denied — token may just be expired
+        // or Firestore rules are overly strict; treat as non-premium silently.
       } catch (e) {
         debugPrint('Error getting premium status: $e');
       }

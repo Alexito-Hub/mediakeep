@@ -6,6 +6,8 @@ import '../services/app_version_service.dart';
 import '../main.dart';
 
 import '../utils/responsive.dart';
+import '../utils/app_routes.dart';
+import '../widgets/layout/responsive_shell_scaffold.dart';
 import 'privacy_screen.dart';
 import 'author_screen.dart';
 import 'package:path_provider/path_provider.dart';
@@ -33,6 +35,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _appVersion = 'Cargando...';
   User? _currentUser;
   Map<String, dynamic>? _userData;
+  // Desktop tabs — 'Acerca de' omitted: Estado/Cambios/Privacidad/Autor
+  // are already reachable from the sidebar info section.
+  static const _kSectionTitles = [
+    'Apariencia',
+    'Cuenta',
+    'Compartir',
+    'Almacenamiento',
+  ];
+  static const _kSectionIcons = [
+    Icons.palette_rounded,
+    Icons.person_rounded,
+    Icons.share_rounded,
+    Icons.folder_rounded,
+  ];
 
   @override
   void initState() {
@@ -214,295 +230,355 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('Configuración')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: Responsive.value(
+  // ── Section content builders (shared by mobile + desktop) ──────────────
+
+  Widget _buildAparienciaSection() => _buildSection(
+    title: 'Apariencia',
+    icon: Icons.palette,
+    children: [
+      _buildThemeOption('Modo claro', Icons.light_mode, ThemeMode.light),
+      _buildThemeOption('Modo oscuro', Icons.dark_mode, ThemeMode.dark),
+      _buildThemeOption(
+        'Automático (sistema)',
+        Icons.brightness_auto,
+        ThemeMode.system,
+      ),
+    ],
+  );
+
+  Widget _buildCuentaSection() => _buildSection(
+    title: 'Cuenta',
+    icon: Icons.person,
+    children: [
+      if (_currentUser != null) ...[
+        ListTile(
+          leading: const Icon(Icons.email),
+          title: Text(_currentUser!.email ?? 'Usuario'),
+          subtitle: Text(
+            'Plan: ${_userData?['plan']?.toString().toUpperCase() ?? 'GRATIS'}',
+          ),
+        ),
+        if (_userData != null) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: LinearProgressIndicator(
+              value:
+                  (_userData!['requestsCount'] ?? 0) /
+                  (_userData!['totalLimit'] ?? 10),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Descargas usadas: ${_userData!['requestsCount'] ?? 0} / ${_userData!['totalLimit'] ?? 10}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                TextButton(
+                  onPressed: () => Navigator.push(
                     context,
-                    mobile: double.infinity,
-                    tablet: 900,
-                    desktop: 1100,
+                    MaterialPageRoute(builder: (_) => const CheckoutScreen()),
+                  ),
+                  child: Text(
+                    _userData!['plan'] == 'premium'
+                        ? 'Ver Suscripción'
+                        : 'MÁS DESCARGAS',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                child: ListView(
-                  padding: Responsive.getContentPadding(context),
+              ],
+            ),
+          ),
+        ],
+      ],
+      ListTile(
+        leading: Icon(_currentUser == null ? Icons.login : Icons.logout),
+        title: Text(
+          _currentUser == null ? 'Iniciar Sesión / Registro' : 'Cerrar Sesión',
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: _handleAuthAction,
+      ),
+    ],
+  );
+
+  Widget _buildCompartirSection() => _buildSection(
+    title: 'Compartir',
+    icon: Icons.share,
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Mensaje personalizado',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _messageController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Ingresa tu mensaje...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    SafeArea(
-                      child: Column(
-                        children: [
-                          _buildSection(
-                            title: 'Apariencia',
-                            icon: Icons.palette,
-                            children: [
-                              _buildThemeOption(
-                                'Modo claro',
-                                Icons.light_mode,
-                                ThemeMode.light,
-                              ),
-                              _buildThemeOption(
-                                'Modo oscuro',
-                                Icons.dark_mode,
-                                ThemeMode.dark,
-                              ),
-                              _buildThemeOption(
-                                'Automático (sistema)',
-                                Icons.brightness_auto,
-                                ThemeMode.system,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          _buildSection(
-                            title: 'Cuenta',
-                            icon: Icons.person,
-                            children: [
-                              if (_currentUser != null) ...[
-                                ListTile(
-                                  leading: const Icon(Icons.email),
-                                  title: Text(_currentUser!.email ?? 'Usuario'),
-                                  subtitle: Text(
-                                    'Plan: ${_userData?['plan']?.toString().toUpperCase() ?? 'GRATIS'}',
-                                  ),
-                                ),
-                                if (_userData != null) ...[
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
-                                    child: LinearProgressIndicator(
-                                      value:
-                                          (_userData!['requestsCount'] ?? 0) /
-                                          (_userData!['totalLimit'] ?? 10),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 4,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Descargas usadas: ${_userData!['requestsCount'] ?? 0} / ${_userData!['totalLimit'] ?? 10}',
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodySmall,
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    const CheckoutScreen(),
-                                              ),
-                                            );
-                                          },
-                                          child: Text(
-                                            _userData!['plan'] == 'premium'
-                                                ? 'Ver Suscripción'
-                                                : 'MÁS DESCARGAS',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                              ListTile(
-                                leading: Icon(
-                                  _currentUser == null
-                                      ? Icons.login
-                                      : Icons.logout,
-                                ),
-                                title: Text(
-                                  _currentUser == null
-                                      ? 'Iniciar Sesión / Registro'
-                                      : 'Cerrar Sesión',
-                                ),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: _handleAuthAction,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          _buildSection(
-                            title: 'Compartir',
-                            icon: Icons.share,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Mensaje personalizado',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    TextField(
-                                      controller: _messageController,
-                                      onChanged: (_) => setState(() {}),
-                                      decoration: InputDecoration(
-                                        hintText: 'Ingresa tu mensaje...',
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        suffixIcon: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            IconButton(
-                                              icon: const Icon(Icons.refresh),
-                                              onPressed: _resetShareMessage,
-                                              tooltip: 'Restaurar por defecto',
-                                            ),
-                                            IconButton(
-                                              icon: const Icon(Icons.save),
-                                              onPressed: _saveShareMessage,
-                                              tooltip: 'Guardar',
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      maxLines: 2,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Vista previa: ${_messageController.text}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.outline,
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          _buildSection(
-                            title: 'Almacenamiento',
-                            icon: Icons.folder,
-                            children: [
-                              ListTile(
-                                leading: const Icon(Icons.folder_open),
-                                title: const Text('Ubicación de descargas'),
-                                subtitle: const Text('MediaKeep/'),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: _openDownloadsFolder,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          _buildSection(
-                            title: 'Acerca de',
-                            icon: Icons.info,
-                            children: [
-                              ListTile(
-                                leading: const Icon(Icons.new_releases),
-                                title: const Text('Novedades'),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const ChangelogScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.signal_cellular_alt),
-                                title: const Text('Estado del Sistema'),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const StatusScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.privacy_tip),
-                                title: const Text('Privacidad'),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const PrivacyScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.business),
-                                title: const Text('Autor'),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const AuthorScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.code),
-                                title: const Text('Versión'),
-                                subtitle: Text(_appVersion),
-                              ),
-                              const Divider(),
-                              ListTile(
-                                leading: Icon(
-                                  Icons.delete_forever,
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
-                                title: Text(
-                                  'Limpiar historial',
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.error,
-                                  ),
-                                ),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: _clearHistory,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: _resetShareMessage,
+                      tooltip: 'Restaurar por defecto',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.save),
+                      onPressed: _saveShareMessage,
+                      tooltip: 'Guardar',
                     ),
                   ],
                 ),
               ),
+              maxLines: 2,
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Vista previa: ${_messageController.text}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _buildAlmacenamientoSection() => _buildSection(
+    title: 'Almacenamiento',
+    icon: Icons.folder,
+    children: [
+      ListTile(
+        leading: const Icon(Icons.folder_open),
+        title: const Text('Ubicación de descargas'),
+        subtitle: const Text('MediaKeep/'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: _openDownloadsFolder,
+      ),
+    ],
+  );
+
+  // Desktop-only Almacenamiento section: adds version + clear history
+  // (replacing the Acerca de tab which is now accessible via sidebar).
+  Widget _buildAlmacenamientoDesktopSection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildAlmacenamientoSection(),
+        const SizedBox(height: 24),
+        _buildSection(
+          title: 'Aplicación',
+          icon: Icons.info_outline_rounded,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.code_rounded),
+              title: const Text('Versión'),
+              subtitle: Text(_appVersion),
+            ),
+            const Divider(),
+            ListTile(
+              leading: Icon(
+                Icons.delete_forever_rounded,
+                color: theme.colorScheme.error,
+              ),
+              title: Text(
+                'Limpiar historial',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _clearHistory,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAcercaDeSection() => _buildSection(
+    title: 'Acerca de',
+    icon: Icons.info,
+    children: [
+      ListTile(
+        leading: const Icon(Icons.new_releases),
+        title: const Text('Novedades'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ChangelogScreen()),
+        ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.signal_cellular_alt),
+        title: const Text('Estado del Sistema'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const StatusScreen()),
+        ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.privacy_tip),
+        title: const Text('Privacidad'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+        ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.business),
+        title: const Text('Autor'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthorScreen()),
+        ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.code),
+        title: const Text('Versión'),
+        subtitle: Text(_appVersion),
+      ),
+      const Divider(),
+      ListTile(
+        leading: Icon(
+          Icons.delete_forever,
+          color: Theme.of(context).colorScheme.error,
+        ),
+        title: Text(
+          'Limpiar historial',
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: _clearHistory,
+      ),
+    ],
+  );
+
+  // ── Mobile: stacked list (original) ──────────────────────────────────────
+
+  Widget _buildMobileBody() {
+    return ListView(
+      padding: Responsive.getContentPadding(context),
+      children: [
+        SafeArea(
+          child: Column(
+            children: [
+              _buildAparienciaSection(),
+              const SizedBox(height: 24),
+              _buildCuentaSection(),
+              const SizedBox(height: 24),
+              _buildCompartirSection(),
+              const SizedBox(height: 24),
+              _buildAlmacenamientoSection(),
+              const SizedBox(height: 24),
+              _buildAcercaDeSection(),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Desktop: tab bar at top + scrollable content (NO secondary sidebar) ───
+
+  Widget _buildDesktopBody() {
+    final theme = Theme.of(context);
+    final sections = [
+      _buildAparienciaSection,
+      _buildCuentaSection,
+      _buildCompartirSection,
+      () => _buildAlmacenamientoDesktopSection(theme),
+    ];
+
+    return DefaultTabController(
+      length: _kSectionTitles.length,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header with title + horizontal tab bar ───────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(40, 32, 40, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Configuración',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  dividerColor: Colors.transparent,
+                  tabs: List.generate(
+                    _kSectionTitles.length,
+                    (i) => Tab(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_kSectionIcons[i], size: 16),
+                          const SizedBox(width: 6),
+                          Text(_kSectionTitles[i]),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(
+            height: 1,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+          // ── Tab content ───────────────────────────────────────────────
+          Expanded(
+            child: TabBarView(
+              children: sections.map((builder) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(40, 32, 40, 40),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 700),
+                    child: builder(),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ResponsiveShellScaffold(
+      title: 'Configuración',
+      currentRoute: AppRoutes.settings,
+      extendBodyBehindAppBar: true,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Responsive.isMobile(context)
+          ? _buildMobileBody()
+          : _buildDesktopBody(),
     );
   }
 

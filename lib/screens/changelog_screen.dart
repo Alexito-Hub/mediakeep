@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/changelog_model.dart';
 import '../services/changelog_service.dart';
 import '../utils/responsive.dart';
+import '../utils/app_routes.dart';
+import '../widgets/layout/responsive_shell_scaffold.dart';
 
 class ChangelogScreen extends StatefulWidget {
   const ChangelogScreen({super.key});
@@ -33,23 +35,62 @@ class _ChangelogScreenState extends State<ChangelogScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDesktop = !Responsive.isMobile(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Registro de Cambios'),
-        centerTitle: true,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _changelog.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: Responsive.getContentPadding(context),
-              itemCount: _changelog.length,
-              itemBuilder: (context, index) {
-                return _buildVersionNode(_changelog[index], index == 0, theme);
-              },
+    Widget body;
+    if (_isLoading) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (_changelog.isEmpty) {
+      body = _buildEmptyState();
+    } else if (isDesktop) {
+      // Desktop: single centered column, clean timeline
+      body = SingleChildScrollView(
+        padding: Responsive.kDesktop,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Registro de Cambios',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${_changelog.length} versiones publicadas',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                ..._changelog.asMap().entries.map(
+                  (e) => _buildVersionNode(e.value, e.key == 0, theme),
+                ),
+              ],
             ),
+          ),
+        ),
+      );
+    } else {
+      body = SafeArea(
+        child: ListView.builder(
+          padding: Responsive.getContentPadding(context),
+          itemCount: _changelog.length,
+          itemBuilder: (context, index) {
+            return _buildVersionNode(_changelog[index], index == 0, theme);
+          },
+        ),
+      );
+    }
+
+    return ResponsiveShellScaffold(
+      title: 'Registro de Cambios',
+      currentRoute: AppRoutes.changelog,
+      extendBodyBehindAppBar: true,
+      body: body,
     );
   }
 
@@ -76,7 +117,9 @@ class _ChangelogScreenState extends State<ChangelogScreen> {
                   shape: BoxShape.circle,
                   border: isLatest
                       ? Border.all(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.3,
+                          ),
                           width: 4,
                         )
                       : null,
@@ -111,8 +154,8 @@ class _ChangelogScreenState extends State<ChangelogScreen> {
                       Text(
                         entry.date,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.textTheme.bodySmall?.color?.withValues(alpha: 
-                            0.6,
+                          color: theme.textTheme.bodySmall?.color?.withValues(
+                            alpha: 0.6,
                           ),
                         ),
                       ),
@@ -182,4 +225,3 @@ class _ChangelogScreenState extends State<ChangelogScreen> {
     );
   }
 }
-

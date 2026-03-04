@@ -3,6 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/ad_manager.dart';
+import '../utils/app_routes.dart';
+import '../utils/responsive.dart';
+import '../widgets/layout/responsive_shell_scaffold.dart';
+import 'auth_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -31,7 +35,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _handleSubscription(String packageId) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      _showToast('Por favor, inicia sesión primero.', isError: true);
+      // Not logged in — go to auth and resume purchase after successful login
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              AuthScreen(onAuthSuccess: () => _handleSubscription(packageId)),
+        ),
+      );
       return;
     }
 
@@ -81,129 +92,225 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isPremium) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Suscripción Premium')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.star_rounded, color: Colors.amber, size: 80),
-              const SizedBox(height: 24),
-              Text(
-                '¡Ya eres Premium!',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+      return ResponsiveShellScaffold(
+        title: 'Suscripción Premium',
+        currentRoute: AppRoutes.checkout,
+        extendBodyBehindAppBar: true,
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.star_rounded, color: Colors.amber, size: 80),
+                const SizedBox(height: 24),
+                Text(
+                  '¡Ya eres Premium!',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Disfruta de descargas ilimitadas y sin publicidad.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 32),
-              FilledButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Volver'),
-              ),
-            ],
+                const SizedBox(height: 16),
+                const Text(
+                  'Disfruta de descargas ilimitadas y sin publicidad.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                const SizedBox(height: 32),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Volver'),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Actualizar a Premium')),
-      body: _isLoading
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Generando enlace seguro...'),
-                ],
+    final isDesktop = !Responsive.isMobile(context);
+
+    Widget plansWidget = _isLoading
+        ? const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Generando enlace seguro...'),
+              ],
+            ),
+          )
+        : isDesktop
+        ? // Desktop: 3 cards side by side
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1080),
+              child: SingleChildScrollView(
+                padding: Responsive.kDesktop,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Premium',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 32),
+                    const Icon(
+                      Icons.diamond_outlined,
+                      size: 48,
+                      color: Colors.blueAccent,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Mejora tu experiencia',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Descargas ilimitadas, sin anuncios y máxima prioridad.',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 32),
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: _buildPlanCard(
+                              context: context,
+                              title: 'Pack 50 Descargas',
+                              price: '\$2.99 USD',
+                              features: [
+                                '50 enlaces sin anuncios',
+                                'Alta velocidad',
+                                'Sin caducidad (One-Time)',
+                              ],
+                              buttonText: 'Comprar Pack 50',
+                              onTap: () => _handleSubscription('pack_50'),
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: _buildPlanCard(
+                              context: context,
+                              title: 'Pack 100 Descargas',
+                              price: '\$4.99 USD',
+                              features: [
+                                'El doble por menos',
+                                '100 enlaces sin anuncios',
+                                'Ideal para uso frecuente',
+                              ],
+                              buttonText: 'Ahorrar con Pack 100',
+                              isPopular: true,
+                              onTap: () => _handleSubscription('pack_100'),
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: _buildPlanCard(
+                              context: context,
+                              title: 'Auralix Premium',
+                              price: '\$9.99 USD / mes',
+                              features: [
+                                'Descargas ILIMITADAS',
+                                'Servidores Dedicados',
+                                '0% Anuncios y Bloqueos',
+                                'Cancela cuando quieras',
+                              ],
+                              buttonText: 'Suscribirse',
+                              isGold: true,
+                              onTap: () => _handleSubscription('sub_premium'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Icon(
+            ),
+          )
+        : // Mobile: single column
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Center(
+                  child: Icon(
                     Icons.diamond_outlined,
                     size: 64,
                     color: Colors.blueAccent,
                   ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Mejora tu experiencia',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Mejora tu experiencia',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Descargas ilimitadas, sin anuncios comerciales y máxima prioridad en nuestros servidores.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 48),
-
-                  // Pack 50 Descargas
-                  _buildPlanCard(
-                    context: context,
-                    title: 'Pack 50 Descargas',
-                    price: '\$15.00 MXN',
-                    features: [
-                      '50 enlaces de descarga sin anuncios',
-                      'Alta velocidad',
-                      'Sin caducidad (One-Time)',
-                    ],
-                    buttonText: 'Comprar Pack 50',
-                    isPopular: false,
-                    onTap: () => _handleSubscription('pack_50'),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Pack 100 Descargas (Popular)
-                  _buildPlanCard(
-                    context: context,
-                    title: 'Pack 100 Descargas',
-                    price: '\$25.00 MXN',
-                    features: [
-                      'El doble por menos',
-                      '100 enlaces de descarga sin anuncios',
-                      'Ideal para uso frecuente',
-                    ],
-                    buttonText: 'Ahorrar con Pack 100',
-                    isPopular: true,
-                    onTap: () => _handleSubscription('pack_100'),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Suscripción Premium
-                  _buildPlanCard(
-                    context: context,
-                    title: 'Auralix Premium',
-                    price: '\$49.00 MXN / Mes',
-                    features: [
-                      'Descargas ILIMITADAS todo el mes',
-                      'Uso de Servidores Dedicados',
-                      '0% Anuncios y Bloqueos',
-                      'Cancela cuando quieras',
-                    ],
-                    buttonText: 'Suscribirse al Plan Mensual',
-                    isPopular: false,
-                    isGold: true,
-                    onTap: () => _handleSubscription('sub_premium'),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Descargas ilimitadas, sin anuncios comerciales y máxima prioridad en nuestros servidores.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                const SizedBox(height: 48),
+                _buildPlanCard(
+                  context: context,
+                  title: 'Pack 50 Descargas',
+                  price: '\$2.99 USD',
+                  features: [
+                    '50 enlaces de descarga sin anuncios',
+                    'Alta velocidad',
+                    'Sin caducidad (One-Time)',
+                  ],
+                  buttonText: 'Comprar Pack 50',
+                  onTap: () => _handleSubscription('pack_50'),
+                ),
+                const SizedBox(height: 24),
+                _buildPlanCard(
+                  context: context,
+                  title: 'Pack 100 Descargas',
+                  price: '\$4.99 USD',
+                  features: [
+                    'El doble por menos',
+                    '100 enlaces de descarga sin anuncios',
+                    'Ideal para uso frecuente',
+                  ],
+                  buttonText: 'Ahorrar con Pack 100',
+                  isPopular: true,
+                  onTap: () => _handleSubscription('pack_100'),
+                ),
+                const SizedBox(height: 24),
+                _buildPlanCard(
+                  context: context,
+                  title: 'Auralix Premium',
+                  price: '\$9.99 USD / mes',
+                  features: [
+                    'Descargas ILIMITADAS todo el mes',
+                    'Uso de Servidores Dedicados',
+                    '0% Anuncios y Bloqueos',
+                    'Cancela cuando quieras',
+                  ],
+                  buttonText: 'Suscribirse al Plan Mensual',
+                  isGold: true,
+                  onTap: () => _handleSubscription('sub_premium'),
+                ),
+              ],
             ),
+          );
+
+    return ResponsiveShellScaffold(
+      title: 'Actualizar a Premium',
+      currentRoute: AppRoutes.checkout,
+      extendBodyBehindAppBar: true,
+      body: SafeArea(child: plansWidget),
     );
   }
 

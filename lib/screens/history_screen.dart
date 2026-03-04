@@ -12,6 +12,8 @@ import '../services/ad_manager.dart';
 import '../widgets/ad_banner.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../utils/responsive.dart';
+import '../utils/app_routes.dart';
+import '../widgets/layout/responsive_shell_scaffold.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -153,7 +155,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     final groupedItems = _groupItems(_historyItems);
 
-    return Scaffold(
+    return ResponsiveShellScaffold(
+      title: 'Tu Historial',
+      currentRoute: AppRoutes.history,
+      showMobileAppBar: false,
+      actions: [
+        if (_historyItems.isNotEmpty)
+          IconButton(
+            onPressed: _clearAll,
+            icon: const Icon(Icons.delete_sweep_rounded),
+            tooltip: 'Limpiar todo',
+          ),
+      ],
       body: Stack(
         children: [
           CustomScrollView(
@@ -195,8 +208,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             index,
                           ) {
                             final card = _buildHistoryCard(entry.value[index]);
-
-                            // Inject inline banner every 4 items
                             if (index > 0 && index % 4 == 0) {
                               return Column(
                                 children: [
@@ -218,42 +229,69 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   );
                 })
               else
-                // Tablet / Desktop: 2 or 3 column grid
-                SliverPadding(
-                  padding: Responsive.getContentPadding(context),
-                  sliver: SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: Responsive.getGridColumns(
-                        context,
-                        mobile: 1,
-                        tablet: 2,
-                        desktop: 3,
-                      ),
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 2.8,
-                    ),
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final card = _buildHistoryCard(_historyItems[index]);
-
-                      if (index > 0 && index % 6 == 0) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.outline.withValues(alpha: 0.1),
-                              width: 1,
-                            ),
+                // Desktop: grouped 3-column grid with date section headers
+                ...groupedItems.entries.map((entry) {
+                  return SliverMainAxisGroup(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(40, 28, 40, 12),
+                          child: Row(
+                            children: [
+                              Text(
+                                entry.key,
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
+                                    ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Divider(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant
+                                      .withValues(alpha: 0.4),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                '${entry.value.length} archivo${entry.value.length == 1 ? '' : 's'}',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outline,
+                                    ),
+                              ),
+                            ],
                           ),
-                          child: _buildInlineNativeAd(),
-                        );
-                      }
-                      return card;
-                    }, childCount: _historyItems.length),
-                  ),
-                ),
+                        ),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                mainAxisSpacing: 10,
+                                crossAxisSpacing: 10,
+                                childAspectRatio: 3.2,
+                              ),
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) =>
+                                _buildHistoryCardGrid(entry.value[index]),
+                            childCount: entry.value.length,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
               const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           ),
@@ -269,21 +307,44 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildSliverAppBar() {
+    final isDesktop = !Responsive.isMobile(context);
+    if (isDesktop) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(40, 32, 40, 0),
+          child: Row(
+            children: [
+              Text(
+                'Tu Historial',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              if (_historyItems.isNotEmpty)
+                IconButton(
+                  onPressed: _clearAll,
+                  icon: const Icon(Icons.delete_sweep_rounded),
+                  tooltip: 'Limpiar todo',
+                ),
+            ],
+          ),
+        ),
+      );
+    }
     return SliverAppBar(
-      expandedHeight: 120,
       floating: true,
       pinned: true,
       elevation: 0,
-      scrolledUnderElevation: 2,
+      scrolledUnderElevation: 0,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
-          'Tu Historial',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: false,
-        titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
+      surfaceTintColor: Colors.transparent,
+      automaticallyImplyLeading: true,
+      title: const Text(
+        'Tu Historial',
+        style: TextStyle(fontWeight: FontWeight.bold),
       ),
+      centerTitle: false,
       actions: [
         if (_historyItems.isNotEmpty)
           IconButton(
@@ -297,9 +358,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildSearchAndFilters() {
+    final hp = Responsive.isMobile(context) ? 16.0 : 40.0;
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.fromLTRB(hp, 8, hp, 8),
         child: Column(
           children: [
             TextField(
@@ -393,6 +455,132 @@ class _HistoryScreenState extends State<HistoryScreen> {
               : Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 4),
+      ),
+    );
+  }
+
+  // Grid variant of history card: no outer horizontal margin (grid manages spacing).
+  Widget _buildHistoryCardGrid(DownloadHistoryItem item) {
+    IconData typeIcon;
+    Color iconColor;
+    switch (item.type) {
+      case 'video':
+        typeIcon = Icons.movie_creation_rounded;
+        iconColor = Colors.redAccent;
+        break;
+      case 'audio':
+        typeIcon = Icons.music_note_rounded;
+        iconColor = Colors.greenAccent.shade700;
+        break;
+      case 'image':
+        typeIcon = Icons.image_rounded;
+        iconColor = Colors.blueAccent;
+        break;
+      default:
+        typeIcon = Icons.insert_drive_file_rounded;
+        iconColor = Colors.grey;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () {
+            AdManager.showInterstitialAd();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MediaPreviewScreen(
+                  filePath: item.filePath,
+                  fileName: item.fileName,
+                  fileType: item.type,
+                  platform: item.platformName,
+                ),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: item.type == 'image'
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.file(
+                            File(item.filePath),
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                Icon(typeIcon, color: iconColor, size: 24),
+                          ),
+                        )
+                      : Icon(typeIcon, color: iconColor, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        item.fileName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          _platformBadge(item.platform),
+                          const SizedBox(width: 6),
+                          Text(
+                            item.formattedSize,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.outline,
+                              fontSize: 11,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            DateFormat('HH:mm').format(item.downloadedAt),
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outline.withValues(alpha: 0.6),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                _buildActionsMenu(item),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SettingsService {
   static const String _themeKey = 'theme_mode';
   static const String _shareMessageKey = 'share_message';
+  static const String _autoDownloadKey = 'auto_download_enabled';
   static const String _defaultShareMessage = 'Descargado con MediaKeep';
 
   /// Get current theme mode
@@ -62,4 +63,16 @@ class SettingsService {
 
   /// Get default share message
   static String get defaultShareMessage => _defaultShareMessage;
+
+  /// Get auto-download (beta) enabled state
+  static Future<bool> getAutoDownloadEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_autoDownloadKey) ?? false;
+  }
+
+  /// Set auto-download (beta) enabled state
+  static Future<void> setAutoDownloadEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoDownloadKey, value);
+  }
 }

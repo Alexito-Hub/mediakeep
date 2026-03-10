@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import '../widgets/media/video_preview_widget.dart';
 import '../widgets/media/audio_preview_widget.dart';
-import '../services/ad_manager.dart';
 
 /// Full-screen viewer for downloaded media (video, audio, image).
 ///
@@ -46,11 +45,6 @@ class _MediaPreviewScreenState extends State<MediaPreviewScreen>
     if (widget.fileType == 'video' || widget.fileType == 'image') {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     }
-
-    // Reemplazamos el Intersticial clásico por el Intersticial Bonificado
-    AdManager.showRewardedInterstitialAd(() {
-      debugPrint('Usuario vio el rewarded interstitial en MediaPreviewScreen');
-    });
   }
 
   @override

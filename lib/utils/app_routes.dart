@@ -7,6 +7,4 @@ class AppRoutes {
   static const String changelog = '/changelog';
   static const String privacy = '/privacy';
   static const String author = '/author';
-  static const String checkout = '/checkout';
-  static const String auth = '/auth';
 }

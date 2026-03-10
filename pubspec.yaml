@@ -61,16 +61,10 @@ dependencies:
   
   # Firebase
   firebase_core: ^3.9.0
-  firebase_auth: ^5.4.0
-  cloud_firestore: ^5.6.0
-  google_sign_in: ^6.2.2
-  google_sign_in_web: ^0.12.0
-  # Required by google_button_web.dart when casting to GoogleSignInPlatform
-  google_sign_in_platform_interface: ^2.5.0
 
   
   # Monetización & Anuncios
-  google_mobile_ads: ^5.1.0
+    # Eliminadas dependencias de anuncios, auth y premium
   
   # Background Downloads
   flutter_downloader: ^1.11.8

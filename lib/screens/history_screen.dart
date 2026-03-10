@@ -7,10 +7,7 @@ import '../services/history_service.dart';
 import '../screens/media_preview_screen.dart';
 import '../utils/constants.dart';
 import '../utils/platform_config.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import '../services/ad_manager.dart';
-import '../widgets/ad_banner.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+
 import '../utils/responsive.dart';
 import '../utils/app_routes.dart';
 import '../widgets/layout/responsive_shell_scaffold.dart';
@@ -111,7 +108,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (confirmed == true) {
       await HistoryService.clearHistory();
       _loadHistory();
-      AdManager.showInterstitialAd();
     }
   }
 
@@ -207,21 +203,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             context,
                             index,
                           ) {
-                            final card = _buildHistoryCard(entry.value[index]);
-                            if (index > 0 && index % 4 == 0) {
-                              return Column(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8.0,
-                                    ),
-                                    child: _buildInlineNativeAd(),
-                                  ),
-                                  card,
-                                ],
-                              );
-                            }
-                            return card;
+                            return _buildHistoryCard(entry.value[index]);
                           }, childCount: entry.value.length),
                         ),
                       ),
@@ -297,13 +279,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: _buildAdBanner(),
+      bottomNavigationBar: null,
     );
-  }
-
-  Widget? _buildAdBanner() {
-    // simplified: just return the reusable AdBanner widget defined elsewhere
-    return const AdBanner();
   }
 
   Widget _buildSliverAppBar() {
@@ -497,7 +474,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           onTap: () {
-            AdManager.showInterstitialAd();
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -624,7 +600,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
         borderRadius: BorderRadius.circular(24),
         child: InkWell(
           onTap: () {
-            AdManager.showInterstitialAd();
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -853,60 +828,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildInlineNativeAd() {
-    if (kIsWeb) return const SizedBox.shrink();
-
-    return StatefulBuilder(
-      builder: (context, setState) {
-        NativeAd? localAd;
-        bool loaded = false;
-
-        if (!loaded) {
-          AdManager.loadNativeAd(() {
-            if (context.mounted) {
-              setState(() => loaded = true);
-            }
-          }).then((ad) {
-            if (context.mounted) {
-              setState(() {
-                localAd = ad;
-              });
-            }
-          });
-        }
-
-        if (loaded && localAd != null) {
-          return Container(
-            constraints: const BoxConstraints(minHeight: 100, maxHeight: 150),
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            alignment: Alignment.center,
-            // NativeAds rendered dynamically based on Android layout list_tile_native_ad.xml
-            child: AdWidget(ad: localAd!),
-          );
-        }
-
-        return Container(
-          height: 80,
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            'Cargando Anuncio Nativo...',
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.outline,
-            ),
-          ),
-        );
-      },
     );
   }
 

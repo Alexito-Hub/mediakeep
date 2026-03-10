@@ -16,7 +16,6 @@ import '../models/twitter_model.dart';
 import '../services/api_service.dart';
 import '../services/download_service.dart';
 import '../services/permission_service.dart';
-import '../../services/adblock_detector.dart';
 import '../utils/platform_detector.dart';
 import '../utils/constants.dart';
 import '../utils/responsive.dart';
@@ -36,10 +35,7 @@ import 'settings_screen.dart';
 import 'history_screen.dart';
 import 'active_downloads_screen.dart';
 import '../services/history_service.dart';
-import '../services/ad_manager.dart';
-import '../widgets/ad_banner.dart';
 import '../widgets/layout/responsive_shell_scaffold.dart';
-import 'auth_screen.dart';
 
 /// Main download screen
 class DownloadScreen extends StatefulWidget {
@@ -74,12 +70,15 @@ class _DownloadScreenState extends State<DownloadScreen> {
   @override
   void initState() {
     super.initState();
-    // Request all permissions on startup
-    PermissionService.requestAllPermissions();
+    // Show permission rationale dialogs after first frame renders
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        PermissionService.requestAllPermissionsWithRationale(context);
+      }
+    });
 
     _controller.addListener(_detectPlatform);
     _initSharing();
-
     if (widget.initialUrl != null && widget.initialUrl!.isNotEmpty) {
       _controller.text = widget.initialUrl!;
       _hasReceivedSharedContent = true;
@@ -215,23 +214,6 @@ class _DownloadScreenState extends State<DownloadScreen> {
     });
 
     try {
-      // 🚀 AdBlock Check para Web 🚀
-      if (kIsWeb) {
-        final isAdBlockActive = await AdBlockDetector.hasAdBlock();
-        if (isAdBlockActive) {
-          final isPrem = await AdManager.isPremium();
-          if (!isPrem) {
-            _showError(
-              '¡AdBlock Detectado! MediaKeep es gratuito gracias a los anuncios. Por favor, desactiva tu bloqueador de anuncios para continuar.',
-            );
-            setState(() {
-              _loading = false;
-            });
-            return;
-          }
-        }
-      }
-
       // 1) Verify API status limits natively
       await ApiService.getSubscriptionStatus();
       if (!mounted) return;
@@ -379,7 +361,6 @@ class _DownloadScreenState extends State<DownloadScreen> {
                 onError: _showError,
               );
             }
-            AdManager.showInterstitialAd();
           } else {
             _showError(result.errorMessage ?? 'Error en la descarga');
           }
@@ -448,60 +429,16 @@ class _DownloadScreenState extends State<DownloadScreen> {
     if (!mounted) return;
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.lock_outline_rounded, size: 48),
         title: const Text('Límite Alcanzado'),
         content: Text(message),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
-          TextButton(
+          FilledButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
-          ),
-          if (!kIsWeb)
-            FilledButton.icon(
-              icon: const Icon(Icons.play_circle_outline_rounded),
-              onPressed: () {
-                Navigator.pop(ctx);
-                _showToast('Cargando anuncio... un momento');
-                AdManager.showRewardedAd((amount) async {
-                  _showToast(
-                    '¡Premio obtenido! Desbloqueando descarga...',
-                    isSuccess: true,
-                  );
-                  // Call backend to grant +X requests based on AdMob reward configuration
-                  final response = await ApiService.grantRewardRequest(
-                    amount.toInt(),
-                  );
-                  if (response) {
-                    _showToast(
-                      '¡Descarga extra obtenida, intenta de nuevo!',
-                      isSuccess: true,
-                    );
-                  } else {
-                    _showError(
-                      'No se pudo otorgar la descarga extra. Intenta más tarde.',
-                    );
-                  }
-                });
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.amber.shade700,
-                foregroundColor: Colors.white,
-              ),
-              label: const Text('Ver Anuncio (+1 Descarga)'),
-            ),
-          FilledButton.icon(
-            icon: const Icon(Icons.person_add_rounded),
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AuthScreen()),
-              );
-            },
-            label: const Text('Crear cuenta / Iniciar sesión'),
+            child: const Text('Entendido'),
           ),
         ],
       ),
@@ -691,7 +628,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
         _twitterData != null;
   }
 
-  Widget? _buildAdBanner() => const AdBanner();
+  Widget? _buildAdBanner() => null;
 
   Widget _buildInputCard(bool isDark) {
     return Card(

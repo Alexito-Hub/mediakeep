@@ -1,9 +1,7 @@
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/download_history_model.dart';
 import 'widget_service.dart';
-import 'api_service.dart';
 
 /// Manages download history.
 /// - For **guest users**: reads/writes from SharedPreferences (local only).
@@ -36,23 +34,8 @@ class HistoryService {
       contentId: contentId,
     );
 
-    // 1. Always persist locally first (fast, works offline)
+    // Save locally (works offline, no auth needed)
     await _writeLocal(historyItem);
-
-    // 2. If authenticated, also sync to backend Firestore
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      _syncToBackgroundBackend(
-        fileName: fileName,
-        filePath: filePath,
-        platform: platform,
-        type: type,
-        fileSize: fileSize,
-        sourceUrl: sourceUrl,
-        contentId: contentId,
-      );
-    }
-
     await _syncWidget();
   }
 
@@ -68,30 +51,6 @@ class HistoryService {
 
     final jsonList = history.map((item) => item.toJson()).toList();
     await prefs.setString(_historyKey, jsonEncode(jsonList));
-  }
-
-  /// Fires a background POST to the backend to persist the history entry in Firestore.
-  /// Errors are silently ignored (local copy is the source of truth when offline).
-  static void _syncToBackgroundBackend({
-    required String fileName,
-    required String filePath,
-    required String platform,
-    required String type,
-    required int fileSize,
-    String? sourceUrl,
-    String? contentId,
-  }) {
-    ApiService.addHistoryToBackend(
-      fileName: fileName,
-      filePath: filePath,
-      platform: platform,
-      type: type,
-      fileSize: fileSize,
-      sourceUrl: sourceUrl,
-      contentId: contentId,
-    ).catchError((_) {
-      // Silently ignore — local copy is the fallback
-    });
   }
 
   // ─── Read ─────────────────────────────────────────────────────────────────

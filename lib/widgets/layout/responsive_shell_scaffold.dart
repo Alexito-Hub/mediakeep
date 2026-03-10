@@ -60,11 +60,6 @@ const List<ShellNavItem> shellInfoNavItems = [
     label: 'Autor',
     icon: Icons.info_rounded,
   ),
-  ShellNavItem(
-    route: AppRoutes.checkout,
-    label: 'Premium',
-    icon: Icons.diamond_rounded,
-  ),
 ];
 
 class ResponsiveShellScaffold extends StatelessWidget {
@@ -142,7 +137,7 @@ class _DesktopSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
+    return SizedBox(
       width: 264,
       child: SafeArea(
         child: Column(

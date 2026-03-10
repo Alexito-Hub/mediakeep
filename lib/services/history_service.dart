@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/download_history_model.dart';
 import 'widget_service.dart';
@@ -72,9 +73,48 @@ class HistoryService {
 
     try {
       final List<dynamic> jsonList = jsonDecode(jsonString);
-      return jsonList
-          .map((json) => DownloadHistoryItem.fromJson(json))
-          .toList();
+      bool needsSave = false;
+
+      final items = jsonList.map((json) {
+        final item = DownloadHistoryItem.fromJson(json);
+        // Background downloaded items start at 0 bytes. Check if the file has now been saved.
+        if (item.fileSize == 0) {
+          File file = File(item.filePath);
+
+          // [Android 11+] Path Healing
+          // FlutterDownloader's publicStorage: true shifts the physical file away from the absolute savedDir.
+          if (!file.existsSync() && Platform.isAndroid) {
+            final fallbackPaths = [
+              '/storage/emulated/0/Download/${item.fileName}',
+              '/storage/emulated/0/Download/MediaKeep/${item.fileName}',
+              '/storage/emulated/0/Download/MediaKeep/${item.type == 'video' ? 'video' : (item.type == 'audio' ? 'audio' : 'imagen')}/${item.fileName}',
+            ];
+
+            for (final path in fallbackPaths) {
+              final fallbackFile = File(path);
+              if (fallbackFile.existsSync()) {
+                item.filePath = path;
+                file = fallbackFile;
+                needsSave = true;
+                break;
+              }
+            }
+          }
+
+          if (file.existsSync()) {
+            item.fileSize = file.lengthSync();
+            needsSave = true;
+          }
+        }
+        return item;
+      }).toList();
+
+      if (needsSave) {
+        final updatedJsonList = items.map((item) => item.toJson()).toList();
+        await prefs.setString(_historyKey, jsonEncode(updatedJsonList));
+      }
+
+      return items;
     } catch (e) {
       return [];
     }

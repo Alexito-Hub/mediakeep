@@ -37,6 +37,7 @@ class _MediaPreviewScreenState extends State<MediaPreviewScreen>
       TransformationController();
   TapDownDetails? _doubleTapDetails;
   bool _isZoomed = false;
+  bool _isFileReady = false;
 
   @override
   void initState() {
@@ -44,6 +45,21 @@ class _MediaPreviewScreenState extends State<MediaPreviewScreen>
     // Remove status bar for immersive experience on video/image
     if (widget.fileType == 'video' || widget.fileType == 'image') {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
+    _waitForFile();
+  }
+
+  Future<void> _waitForFile() async {
+    final file = File(widget.filePath);
+    int attempts = 0;
+    while (!file.existsSync() && attempts < 10) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      attempts++;
+    }
+    if (mounted) {
+      setState(() {
+        _isFileReady = file.existsSync();
+      });
     }
   }
 
@@ -134,6 +150,22 @@ class _MediaPreviewScreenState extends State<MediaPreviewScreen>
     bool isImage,
     bool isAudio,
   ) {
+    if (!_isFileReady) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(height: 16),
+            Text(
+              'Preparando archivo...',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (isVideo) return _buildVideoView();
     if (isImage) return _buildImageView();
     if (isAudio) return _buildAudioView(context);

@@ -19,8 +19,7 @@
             <ImageView
                 android:layout_width="16dp"
                 android:layout_height="16dp"
-                android:src="@android:drawable/ic_menu_save"
-                android:tint="#00B4D8" />
+                android:src="@android:drawable/ic_menu_save" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -72,8 +71,7 @@
                 android:id="@+id/icon_1"
                 android:layout_width="12dp"
                 android:layout_height="12dp"
-                android:src="@android:drawable/ic_menu_gallery"
-                android:tint="#90CAF9" />
+                android:src="@android:drawable/ic_menu_gallery" />
             <TextView
                 android:id="@+id/text_1"
                 android:layout_width="0dp"
@@ -98,8 +96,7 @@
                 android:id="@+id/icon_2"
                 android:layout_width="12dp"
                 android:layout_height="12dp"
-                android:src="@android:drawable/ic_menu_gallery"
-                android:tint="#90CAF9" />
+                android:src="@android:drawable/ic_menu_gallery" />
             <TextView
                 android:id="@+id/text_2"
                 android:layout_width="0dp"
@@ -143,15 +140,13 @@
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_btn_accent"
-            android:backgroundTint="#2D323E"
             android:gravity="center"
             android:padding="8dp"
             android:layout_marginEnd="6dp">
             <ImageView
                 android:layout_width="14dp"
                 android:layout_height="14dp"
-                android:src="@android:drawable/ic_menu_recent_history"
-                android:tint="#FFFFFF" />
+                android:src="@android:drawable/ic_menu_recent_history" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -167,14 +162,12 @@
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_btn_accent"
-            android:backgroundTint="#2D323E"
             android:gravity="center"
             android:padding="8dp">
             <ImageView
                 android:layout_width="14dp"
                 android:layout_height="14dp"
-                android:src="@android:drawable/ic_menu_preferences"
-                android:tint="#FFFFFF" />
+                android:src="@android:drawable/ic_menu_preferences" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -192,7 +185,6 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:background="@drawable/bg_btn_accent"
-        android:backgroundTint="#00B4D8"
         android:gravity="center"
         android:orientation="horizontal"
         android:paddingVertical="10dp">
@@ -201,7 +193,6 @@
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:src="@android:drawable/ic_menu_add"
-            android:tint="#FFFFFF"
             android:layout_marginEnd="6dp" />
 
         <TextView

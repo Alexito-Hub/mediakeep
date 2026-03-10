@@ -8,11 +8,13 @@ import '../common/download_action_button_widget.dart';
 class TikTokResultCard extends StatelessWidget {
   final TikTokData data;
   final Function(String url, String type) onDownload;
+  final GlobalKey? tutorialDownloadKey;
 
   const TikTokResultCard({
     super.key,
     required this.data,
     required this.onDownload,
+    this.tutorialDownloadKey,
   });
 
   @override
@@ -89,13 +91,13 @@ class TikTokResultCard extends StatelessWidget {
               children: [
                 if (data.media.noWatermark?.hdPlay != null)
                   DownloadActionButton(
+                    key: tutorialDownloadKey,
                     label: 'Video HD\n(Sin Marca)',
                     icon: Icons.hd,
                     color: Theme.of(context).colorScheme.primary,
-                    onTap: () => onDownload(
-                      data.media.noWatermark?.hdPlay ?? '',
-                      'video',
-                    ),
+                    onTap: () {
+                      onDownload(data.media.noWatermark?.hdPlay ?? '', 'video');
+                    },
                   ),
                 if (data.media.noWatermark?.play != null)
                   DownloadActionButton(

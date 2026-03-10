@@ -6,5 +6,6 @@ class AppRoutes {
   static const String status = '/status';
   static const String changelog = '/changelog';
   static const String privacy = '/privacy';
+  static const String terms = '/terms';
   static const String author = '/author';
 }

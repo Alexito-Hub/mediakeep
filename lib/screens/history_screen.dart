@@ -600,6 +600,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
         borderRadius: BorderRadius.circular(24),
         child: InkWell(
           onTap: () {
+            if (!File(item.filePath).existsSync()) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Descargando o el archivo no existe. Por favor espera.',
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+              return;
+            }
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -632,7 +643,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        if (item.type == 'image')
+                        if (item.type == 'image' &&
+                            File(item.filePath).existsSync())
                           ClipRRect(
                             borderRadius: BorderRadius.circular(18),
                             child: Image.file(
@@ -836,7 +848,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
       icon: const Icon(Icons.more_horiz_rounded, size: 22),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       onSelected: (value) {
-        if (value == 'share') Share.shareXFiles([XFile(item.filePath)]);
+        if (value == 'share') {
+          if (!File(item.filePath).existsSync()) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'El archivo aún está descargando o fue eliminado.',
+                ),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            return;
+          }
+          Share.shareXFiles([XFile(item.filePath)]);
+        }
         if (value == 'delete') _deleteItem(item.id);
       },
       itemBuilder: (context) => [

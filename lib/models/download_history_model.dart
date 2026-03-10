@@ -2,11 +2,11 @@
 class DownloadHistoryItem {
   final String id;
   final String fileName;
-  final String filePath;
+  String filePath;
   final String platform; // tiktok, facebook, spotify, threads
   final String type; // video, audio, image
   final DateTime downloadedAt;
-  final int fileSize; // in bytes
+  int fileSize; // in bytes
   final String? sourceUrl;
   final String? contentId;
 

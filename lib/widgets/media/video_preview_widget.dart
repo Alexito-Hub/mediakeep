@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flick_video_player/flick_video_player.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:path_provider/path_provider.dart';
 
 class VideoPreviewWidget extends StatefulWidget {
   final String? filePath;
@@ -34,6 +35,7 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget> {
   late FlickManager flickManager;
   bool _isInitialized = false;
   bool _hasError = false;
+  File? _tempFile;
 
   @override
   void initState() {
@@ -45,10 +47,41 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget> {
     try {
       VideoPlayerController controller;
       if (widget.filePath != null) {
-        controller = VideoPlayerController.file(File(widget.filePath!));
+        // [Android 11+ Fix] ExoPlayer native cannot access Downloads folder via java.io.FileInputStream
+        // Copiamos el video temporalmente a la carpeta cache interna donde sí tiene acceso.
+        File originalFile = File(widget.filePath!);
+        bool exists = originalFile.existsSync();
+
+        if (!exists && Platform.isAndroid) {
+          final fileName = widget.filePath!.split('/').last;
+          final fallbackPaths = [
+            '/storage/emulated/0/Download/$fileName',
+            '/storage/emulated/0/Download/MediaKeep/$fileName',
+            '/storage/emulated/0/Download/MediaKeep/video/$fileName',
+          ];
+          for (final fallback in fallbackPaths) {
+            if (File(fallback).existsSync()) {
+              originalFile = File(fallback);
+              exists = true;
+              break;
+            }
+          }
+        }
+
+        if (exists) {
+          final tempDir = await getTemporaryDirectory();
+          final tempPath =
+              '${tempDir.path}/temp_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+          _tempFile = await originalFile.copy(tempPath);
+          controller = VideoPlayerController.file(_tempFile!);
+        } else {
+          throw Exception("El archivo fuente no existe.");
+        }
       } else {
         // Optimización: Intentar obtener del cache si es posible
-        final fileInfo = await DefaultCacheManager().getFileFromCache(widget.url!);
+        final fileInfo = await DefaultCacheManager().getFileFromCache(
+          widget.url!,
+        );
         if (fileInfo != null) {
           controller = VideoPlayerController.file(fileInfo.file);
         } else {
@@ -56,8 +89,6 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget> {
             Uri.parse(widget.url!),
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
           );
-          // Opcional: Podrías descargar en background el video para cachearlo
-          // DefaultCacheManager().downloadFile(widget.url!);
         }
       }
 
@@ -67,7 +98,7 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget> {
       );
 
       controller.setLooping(widget.loop);
-      
+
       // Escuchar errores de inicialización
       controller.addListener(() {
         if (controller.value.hasError && mounted) {
@@ -89,6 +120,10 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget> {
     if (_isInitialized) {
       flickManager.dispose();
     }
+    // Clean up temporary cache
+    if (_tempFile != null && _tempFile!.existsSync()) {
+      _tempFile!.deleteSync();
+    }
     super.dispose();
   }
 
@@ -102,7 +137,9 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget> {
     return Container(
       width: double.infinity,
       height: widget.fullscreen ? double.infinity : null,
-      constraints: widget.fullscreen ? null : const BoxConstraints(maxHeight: 500),
+      constraints: widget.fullscreen
+          ? null
+          : const BoxConstraints(maxHeight: 500),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(widget.fullscreen ? 0 : 28),
         child: FlickVideoPlayer(

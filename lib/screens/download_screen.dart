@@ -35,7 +35,9 @@ import 'settings_screen.dart';
 import 'history_screen.dart';
 import 'active_downloads_screen.dart';
 import '../services/history_service.dart';
+import '../services/settings_service.dart';
 import '../widgets/layout/responsive_shell_scaffold.dart';
+import '../widgets/tutorial/spotlight_overlay.dart';
 
 /// Main download screen
 class DownloadScreen extends StatefulWidget {
@@ -65,20 +67,43 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
   bool _isDownloading = false;
 
-  // banner state moved to AdBanner widget; no longer needed here
+  // --- Tutorial State ---
+  bool _isTutorialMode = false;
+  int _tutorialStep = 0; // 0: Copy Link, 1: Press Paste, 2: Press Download
+  final String _tutorialDummyUrl =
+      'https://www.tiktok.com/@miakhalifa/video/7585261135566245150?is_from_webapp=1&sender_device=pc&web_id=7537168528312878597';
+
+  // Spotlight keys
+  final GlobalKey _pasteButtonKey = GlobalKey();
+  final GlobalKey _downloadButtonKey = GlobalKey();
+
+  // Scroller to ensure DownloadButton is visible
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    // Show permission rationale dialogs after first frame renders
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        PermissionService.requestAllPermissionsWithRationale(context);
-      }
-    });
 
     _controller.addListener(_detectPlatform);
     _initSharing();
+    _checkTutorialState();
+  }
+
+  Future<void> _checkTutorialState() async {
+    final bool hasCompleted = await SettingsService.hasCompletedTutorial();
+    if (!hasCompleted) {
+      if (mounted) {
+        setState(() {
+          _isTutorialMode = true;
+          _tutorialStep = 0;
+        });
+      }
+    } else {
+      _runInitialChecks();
+    }
+  }
+
+  void _runInitialChecks() {
     if (widget.initialUrl != null && widget.initialUrl!.isNotEmpty) {
       _controller.text = widget.initialUrl!;
       _hasReceivedSharedContent = true;
@@ -87,7 +112,10 @@ class _DownloadScreenState extends State<DownloadScreen> {
       });
     } else {
       Future.delayed(AppConstants.autoPasteDelay, () {
-        if (!_hasReceivedSharedContent && !kIsWeb) {
+        if (mounted &&
+            !_hasReceivedSharedContent &&
+            !kIsWeb &&
+            !_isTutorialMode) {
           _pasteFromClipboard();
         }
       });
@@ -153,6 +181,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _debounceTimer?.cancel();
     _intentDataStreamSubscription?.cancel();
     _controller.dispose();
@@ -183,6 +212,11 @@ class _DownloadScreenState extends State<DownloadScreen> {
       if (data?.text != null && data!.text!.isNotEmpty) {
         _controller.text = data.text!;
         _focusNode.unfocus();
+        if (_isTutorialMode && _tutorialStep == 1) {
+          setState(
+            () => _tutorialStep = 2,
+          ); // Link pasted automatically triggers fetch
+        }
       } else {
         _showToast('El portapapeles está vacío');
       }
@@ -213,6 +247,8 @@ class _DownloadScreenState extends State<DownloadScreen> {
       _isDownloading = false;
     });
 
+    bool responseWasSuccessful = false;
+
     try {
       // 1) Verify API status limits natively
       await ApiService.getSubscriptionStatus();
@@ -224,6 +260,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
       );
 
       if (response.success && response.data != null) {
+        responseWasSuccessful = true;
         final parsedData = ApiService.parseResponseData(
           response.data!,
           response.platform!,
@@ -268,6 +305,19 @@ class _DownloadScreenState extends State<DownloadScreen> {
     }
 
     setState(() => _loading = false);
+
+    if (_isTutorialMode && responseWasSuccessful) {
+      // Auto-scroll down so the result is fully visible (and the download button can be found by its GlobalKey)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
   }
 
   Future<void> _startDownload(String url, String type) async {
@@ -334,7 +384,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
           if (result.success) {
             _showToast(
-              '✓ Guardado en MediaKeep/${result.subfolder}',
+              'Guardado en MediaKeep/${result.subfolder}',
               isSuccess: true,
             );
 
@@ -455,67 +505,161 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Gradient removed for cleaner UI as per user request
+    return Stack(
+      children: [
+        ResponsiveShellScaffold(
+          title: 'Media Keep',
+          currentRoute: AppRoutes.download,
+          extendBodyBehindAppBar: true,
+          actions: [
+            if (_isDownloading)
+              Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.downloading_rounded),
+                    tooltip: 'Descargas activas',
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ActiveDownloadsScreen(),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            IconButton(
+              icon: const Icon(Icons.history_rounded),
+              tooltip: 'Historial',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HistoryScreen()),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings_rounded),
+              tooltip: 'Ajustes',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              ),
+            ),
+          ],
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              if (Responsive.isMobile(context)) {
+                return _buildMobileBody();
+              }
+              return _buildWideBody();
+            },
+          ),
+          bottomNavigationBar: _buildAdBanner(),
+        ),
 
-    return ResponsiveShellScaffold(
-      title: 'Media Keep',
-      currentRoute: AppRoutes.download,
-      extendBodyBehindAppBar: true,
-      actions: [
-        if (_isDownloading)
-          Stack(
-            alignment: Alignment.topRight,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.downloading_rounded),
-                tooltip: 'Descargas activas',
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ActiveDownloadsScreen(),
-                  ),
-                ),
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        IconButton(
-          icon: const Icon(Icons.history_rounded),
-          tooltip: 'Historial',
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const HistoryScreen()),
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.settings_rounded),
-          tooltip: 'Ajustes',
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SettingsScreen()),
-          ),
-        ),
+        // --- Overlay del Tutorial ---
+        if (_isTutorialMode && !_loading) _buildTutorialOverlay(),
       ],
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (Responsive.isMobile(context)) {
-            return _buildMobileBody();
+    );
+  }
+
+  // ─── Tutorial Windows ────────────────────────────────────────────────────────
+
+  void _finishTutorial() async {
+    await SettingsService.completeTutorial();
+    if (mounted) {
+      setState(() {
+        _isTutorialMode = false;
+        _controller.clear();
+        _tiktokData = null;
+        _instagramData = null;
+        _facebookData = null;
+        _spotifyData = null;
+        _threadsData = null;
+        _youtubeData = null;
+        _twitterData = null;
+        _bilibiliData = null;
+        _platform = null;
+      });
+      _runInitialChecks(); // Re-eanble background checks just in case
+    }
+  }
+
+  Widget _buildTutorialOverlay() {
+    GlobalKey? _targetKey;
+    String _title = '';
+    String _message = '';
+    IconData _icon = Icons.info_outline;
+
+    switch (_tutorialStep) {
+      case 0: // Copy Link
+        _targetKey = null;
+        _title = 'Paso 1: Enlace de Prueba';
+        _message =
+            'Vamos a probar descargando un video. Haz clic abajo para copiar nuestro enlace de TikTok de prueba al portapapeles.';
+        _icon = Icons.content_copy_rounded;
+        break;
+      case 1: // Paste Link
+        _targetKey = _pasteButtonKey;
+        _title = 'Paso 2: Pegar Enlace';
+        _message =
+            'Ahora toca el ícono resaltado para pegar el enlace y buscar el video automáticamente.';
+        _icon = Icons.paste_rounded;
+        break;
+      case 2: // Press Download
+        _targetKey = _downloadButtonKey;
+        _title = 'Paso 3: Descargar';
+        _message =
+            '¡Video encontrado! Desliza y toca el botón resaltado de Video HD para comenzar la descarga y terminar el tutorial.';
+        _icon = Icons.download_rounded;
+        break;
+    }
+
+    return SpotlightOverlay(
+      targetKey: _targetKey,
+      title: _title,
+      message: _message,
+      icon: _icon,
+      skipButtonText: _tutorialStep == 0
+          ? 'Omitir Tutorial'
+          : 'Terminar Tutorial',
+      onSkipOrFinish: _finishTutorial,
+      actionButton: _tutorialStep == 0
+          ? FilledButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: _tutorialDummyUrl));
+                if (mounted) {
+                  setState(() => _tutorialStep = 1);
+                }
+              },
+              icon: const Icon(Icons.copy_rounded, size: 18),
+              label: const Text('Copiar', style: TextStyle(fontSize: 13)),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+            )
+          : null,
+      onTargetTap: () {
+        if (_tutorialStep == 1) {
+          _pasteFromClipboard();
+        } else if (_tutorialStep == 2) {
+          if (_tiktokData?.media.noWatermark?.hdPlay != null) {
+            _startDownload(_tiktokData!.media.noWatermark!.hdPlay!, 'video');
+            _finishTutorial();
           }
-          return _buildWideBody();
-        },
-      ),
-      bottomNavigationBar: _buildAdBanner(),
+        }
+      },
     );
   }
 
@@ -524,6 +668,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
   /// Mobile layout: single scrollable column (original behavior).
   Widget _buildMobileBody() {
     return SingleChildScrollView(
+      controller: _scrollController,
       physics: const BouncingScrollPhysics(),
       child: SafeArea(
         child: Padding(
@@ -559,6 +704,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
     if (!hasContent) {
       // ── No result yet: focused centered layout ──────────────────────────
       return SingleChildScrollView(
+        controller: _scrollController,
         padding: Responsive.kDesktop,
         child: Center(
           child: ConstrainedBox(
@@ -597,6 +743,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
         SizedBox(
           width: 420,
           child: SingleChildScrollView(
+            controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(40, 32, 24, 32),
             child: _buildInputCard(true),
           ),
@@ -733,6 +880,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
                         }),
                       )
                     : IconButton(
+                        key: _pasteButtonKey,
                         icon: const Icon(Icons.paste),
                         onPressed: _pasteFromClipboard,
                         tooltip: 'Pegar',
@@ -802,7 +950,11 @@ class _DownloadScreenState extends State<DownloadScreen> {
   Widget _buildResultCard(bool isDark) {
     Widget card;
     if (_tiktokData != null) {
-      card = TikTokResultCard(data: _tiktokData!, onDownload: _startDownload);
+      card = TikTokResultCard(
+        data: _tiktokData!,
+        onDownload: _startDownload,
+        tutorialDownloadKey: _isTutorialMode ? _downloadButtonKey : null,
+      );
     } else if (_facebookData != null) {
       card = FacebookResultCard(
         data: _facebookData!,

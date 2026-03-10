@@ -6,6 +6,8 @@ class SettingsService {
   static const String _themeKey = 'theme_mode';
   static const String _shareMessageKey = 'share_message';
   static const String _autoDownloadKey = 'auto_download_enabled';
+  static const String _onboardingKey = 'has_completed_onboarding';
+  static const String _tutorialKey = 'has_completed_tutorial';
   static const String _defaultShareMessage = 'Descargado con MediaKeep';
 
   /// Get current theme mode
@@ -74,5 +76,28 @@ class SettingsService {
   static Future<void> setAutoDownloadEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_autoDownloadKey, value);
+  }
+
+  /// Check if user has completed the onboarding flow
+  static Future<bool> hasCompletedOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_onboardingKey) ?? false;
+  }
+
+  /// Mark onboarding flow as completed
+  static Future<void> completeOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingKey, true);
+  }
+
+  // --- TUTORIAL ---
+  static Future<bool> hasCompletedTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_tutorialKey) ?? false; // false = haven't done it yet
+  }
+
+  static Future<void> completeTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_tutorialKey, true);
   }
 }

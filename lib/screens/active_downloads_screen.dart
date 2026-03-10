@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -45,6 +46,40 @@ class _ActiveDownloadsScreenState extends State<ActiveDownloadsScreen> {
   Future<void> _openFile(String? savedDir, String? filename) async {
     if (savedDir == null || filename == null) return;
     final filePath = '$savedDir/$filename';
+
+    // Validate existence before opening. Include Android 11+ fallback paths due to publicStorage shifting.
+    File file = File(filePath);
+    bool exists = file.existsSync();
+
+    if (!exists && Platform.isAndroid) {
+      final fallbackPaths = [
+        '/storage/emulated/0/Download/$filename',
+        '/storage/emulated/0/Download/MediaKeep/$filename',
+        '/storage/emulated/0/Download/MediaKeep/video/$filename',
+        '/storage/emulated/0/Download/MediaKeep/audio/$filename',
+        '/storage/emulated/0/Download/MediaKeep/imagen/$filename',
+      ];
+      for (final fallback in fallbackPaths) {
+        if (File(fallback).existsSync()) {
+          file = File(fallback);
+          exists = true;
+          break;
+        }
+      }
+    }
+
+    if (!exists) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('El archivo ya no existe o fue movido.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
     // Derive fileType from extension
     final ext = filename.split('.').last.toLowerCase();
     final fileType = (ext == 'mp4' || ext == 'mkv' || ext == 'mov')

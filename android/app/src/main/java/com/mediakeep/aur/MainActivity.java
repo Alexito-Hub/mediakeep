@@ -6,7 +6,6 @@ import androidx.annotation.NonNull;
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.MethodChannel;
-import io.flutter.plugins.googlemobileads.GoogleMobileAdsPlugin;
 
 public class MainActivity extends FlutterActivity {
     private static final String CHANNEL = "com.mediakeep.aur/widget_actions";
@@ -47,9 +46,6 @@ public class MainActivity extends FlutterActivity {
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
         this.flutterEngineInstance = flutterEngine;
-
-        GoogleMobileAdsPlugin.registerNativeAdFactory(
-                flutterEngine, "listTile", new ListTileNativeAdFactory(getContext()));
 
         // Widget actions channel
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL)
@@ -93,6 +89,5 @@ public class MainActivity extends FlutterActivity {
     @Override
     public void cleanUpFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.cleanUpFlutterEngine(flutterEngine);
-        GoogleMobileAdsPlugin.unregisterNativeAdFactory(flutterEngine, "listTile");
     }
 }

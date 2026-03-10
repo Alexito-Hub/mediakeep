@@ -9,6 +9,7 @@ import '../utils/responsive.dart';
 import '../utils/app_routes.dart';
 import '../widgets/layout/responsive_shell_scaffold.dart';
 import 'privacy_screen.dart';
+import 'terms_screen.dart';
 import 'author_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -614,6 +615,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+        ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.gavel_rounded),
+        title: const Text('Términos de Uso'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const TermsScreen()),
         ),
       ),
       ListTile(

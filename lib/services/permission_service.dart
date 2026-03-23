@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -48,8 +50,9 @@ class PermissionService {
     // Skip rationale if already granted
     if (await _isStorageGranted()) return true;
 
+    final dialogContext = context;
     final ok = await _showRationale(
-      context,
+      dialogContext,
       icon: Icons.folder_rounded,
       title: 'Acceso al almacenamiento',
       reason:
@@ -79,8 +82,9 @@ class PermissionService {
 
     if (await Permission.notification.isGranted) return true;
 
+    final dialogContext = context;
     final ok = await _showRationale(
-      context,
+      dialogContext,
       icon: Icons.notifications_rounded,
       title: 'Notificaciones',
       reason:

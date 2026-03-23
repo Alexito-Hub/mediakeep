@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../media/audio_preview_widget.dart';
-import '../media/video_preview_widget.dart';
 import '../../services/settings_service.dart';
 import '../../screens/media_preview_screen.dart';
 
@@ -244,30 +243,62 @@ Future<void> showShareDialog({
 
 Widget _buildContentPreview(String filePath, String fileType) {
   if (fileType == 'video') {
-    return VideoPreviewWidget(filePath: filePath);
-  } else if (fileType == 'audio') {
-    return AudioPreviewWidget(filePath: filePath);
-  } else {
-    return Image.file(
-      File(filePath),
-      fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
           width: double.infinity,
           height: 200,
-          color: Colors.grey[200],
-          child: const Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.image, size: 64, color: Colors.grey),
-              SizedBox(height: 8),
-              Text('Imagen descargada'),
-            ],
+          color: Colors.black,
+          child: const Icon(
+            Icons.movie_rounded,
+            size: 80,
+            color: Colors.white24,
           ),
-        );
-      },
+        ),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: Colors.black54,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.play_arrow_rounded,
+            color: Colors.white,
+            size: 48,
+          ),
+        ),
+        Positioned(
+          bottom: 12,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text(
+              'Toca "Ver" para reproducir',
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ),
+        ),
+      ],
     );
   }
+  // Audio
+  if (fileType == 'audio') {
+    return AudioPreviewWidget(filePath: filePath);
+  }
+  // Image
+  return Image.file(
+    File(filePath),
+    fit: BoxFit.contain,
+    errorBuilder: (context, error, stackTrace) => Container(
+      height: 200,
+      color: Colors.grey[200],
+      child: const Icon(Icons.image, size: 64, color: Colors.grey),
+    ),
+  );
 }
 
 IconData _getFileIcon(String fileType) {

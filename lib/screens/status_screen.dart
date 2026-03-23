@@ -24,6 +24,8 @@ class _StatusScreenState extends State<StatusScreen> {
   int _successfulPlatforms = 0;
   bool _isLoading = true;
   String? _errorMessage;
+  DateTime? _lastFetch;
+  static const _cacheDuration = Duration(minutes: 5);
 
   @override
   void initState() {
@@ -32,6 +34,13 @@ class _StatusScreenState extends State<StatusScreen> {
   }
 
   Future<void> _fetchStatus() async {
+    // Return early if we already have fresh data
+    if (_lastFetch != null &&
+        _platformStatuses.isNotEmpty &&
+        DateTime.now().difference(_lastFetch!) < _cacheDuration) {
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -57,6 +66,7 @@ class _StatusScreenState extends State<StatusScreen> {
           _currentTheme = results[3] as ThemeMode;
           _successfulPlatforms = successCount;
           _isLoading = false;
+          _lastFetch = DateTime.now();
         });
       }
     } catch (e) {

@@ -31,9 +31,9 @@ class AppConstants {
 
   // Timeout durations
   static const Duration apiTimeout = Duration(seconds: 15);
-  static const Duration debounceDelay = Duration(milliseconds: 500);
-  static const Duration autoFetchDelay = Duration(milliseconds: 300);
-  static const Duration autoPasteDelay = Duration(milliseconds: 800);
+  static const Duration debounceDelay = Duration(milliseconds: 200);
+  static const Duration autoFetchDelay = Duration(milliseconds: 100);
+  static const Duration autoPasteDelay = Duration(milliseconds: 600);
 
   // App Info
   static const String appName = 'Media Keep';

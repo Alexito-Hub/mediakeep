@@ -38,6 +38,7 @@ class _MediaPreviewScreenState extends State<MediaPreviewScreen>
   TapDownDetails? _doubleTapDetails;
   bool _isZoomed = false;
   bool _isFileReady = false;
+  String? _resolvedFilePath;
 
   @override
   void initState() {
@@ -50,15 +51,37 @@ class _MediaPreviewScreenState extends State<MediaPreviewScreen>
   }
 
   Future<void> _waitForFile() async {
-    final file = File(widget.filePath);
+    String currentPath = widget.filePath;
     int attempts = 0;
-    while (!file.existsSync() && attempts < 10) {
+
+    while (!File(currentPath).existsSync() && attempts < 40) {
       await Future.delayed(const Duration(milliseconds: 500));
       attempts++;
+
+      if (attempts % 6 == 0 && Platform.isAndroid) {
+        // Compatibilidad Android 11+: el archivo puede moverse a public storage
+        final fileName = Uri.file(widget.filePath).pathSegments.last;
+        final possiblePaths = [
+          '/storage/emulated/0/Download/$fileName',
+          '/storage/emulated/0/Download/MediaKeep/$fileName',
+          '/storage/emulated/0/Download/MediaKeep/video/$fileName',
+          '/storage/emulated/0/Download/MediaKeep/audio/$fileName',
+          '/storage/emulated/0/Download/MediaKeep/imagen/$fileName',
+        ];
+
+        for (final fallback in possiblePaths) {
+          if (File(fallback).existsSync()) {
+            currentPath = fallback;
+            break;
+          }
+        }
+      }
     }
+
     if (mounted) {
       setState(() {
-        _isFileReady = file.existsSync();
+        _isFileReady = File(currentPath).existsSync();
+        _resolvedFilePath = currentPath;
       });
     }
   }
@@ -177,7 +200,7 @@ class _MediaPreviewScreenState extends State<MediaPreviewScreen>
   Widget _buildVideoView() {
     return SizedBox.expand(
       child: VideoPreviewWidget(
-        filePath: widget.filePath,
+        filePath: _resolvedFilePath ?? widget.filePath,
         autoPlay: true,
         showControls: true,
         fullscreen: true,
@@ -203,9 +226,9 @@ class _MediaPreviewScreenState extends State<MediaPreviewScreen>
         },
         child: Center(
           child: Hero(
-            tag: widget.filePath,
+            tag: _resolvedFilePath ?? widget.filePath,
             child: Image.file(
-              File(widget.filePath),
+              File(_resolvedFilePath ?? widget.filePath),
               fit: BoxFit.contain,
               filterQuality: FilterQuality.high,
               errorBuilder: (context, error, stackTrace) => const Center(
@@ -234,7 +257,7 @@ class _MediaPreviewScreenState extends State<MediaPreviewScreen>
             child: SizedBox(
               height: 400,
               child: AudioPreviewWidget(
-                filePath: widget.filePath,
+                filePath: _resolvedFilePath ?? widget.filePath,
                 title: widget.fileName,
                 artist: widget.platform ?? 'Media Keep',
                 albumCover: widget.thumbnail,

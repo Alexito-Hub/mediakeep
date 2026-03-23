@@ -158,7 +158,7 @@ class _DesktopSidebar extends StatelessWidget {
                         width: 34,
                         height: 34,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (context, error, stackTrace) => Container(
                           width: 34,
                           height: 34,
                           decoration: BoxDecoration(

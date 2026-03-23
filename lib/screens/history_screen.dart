@@ -503,7 +503,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           child: Image.file(
                             File(item.filePath),
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
+                            errorBuilder: (context, error, stackTrace) =>
                                 Icon(typeIcon, color: iconColor, size: 24),
                           ),
                         )

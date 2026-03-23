@@ -250,10 +250,6 @@ class _DownloadScreenState extends State<DownloadScreen> {
     bool responseWasSuccessful = false;
 
     try {
-      // 1) Verify API status limits natively
-      await ApiService.getSubscriptionStatus();
-      if (!mounted) return;
-
       final response = await ApiService.fetchMedia(
         url: url,
         platform: _platform!,
@@ -378,13 +374,13 @@ class _DownloadScreenState extends State<DownloadScreen> {
             // We only update the _isDownloading flag, not block navigation
           },
         )
-        .then((result) {
+        .then((result) async {
           if (!mounted) return;
           setState(() => _isDownloading = false);
 
           if (result.success) {
             _showToast(
-              'Guardado en MediaKeep/${result.subfolder}',
+              'Descarga iniciada en segundo plano. Revisa Descargas Activas.',
               isSuccess: true,
             );
 
@@ -402,13 +398,26 @@ class _DownloadScreenState extends State<DownloadScreen> {
               debugPrint('Error showing notification: $e');
             }
 
-            if (mounted) {
+            final fileReady = await _waitForFileReady(
+              filePath: result.filePath,
+              taskId: result.taskId,
+            );
+
+            if (fileReady &&
+                result.filePath != null &&
+                result.fileName != null) {
+              if (!mounted) return;
               showShareDialog(
                 context: context,
                 filePath: result.filePath!,
                 fileName: result.fileName!,
                 fileType: type,
                 onError: _showError,
+              );
+            } else {
+              _showToast(
+                'La descarga continúa en segundo plano. Puedes ver el progreso en Descargas Activas o desde el historial.',
+                isSuccess: true,
               );
             }
           } else {
@@ -473,6 +482,50 @@ class _DownloadScreenState extends State<DownloadScreen> {
         margin: const EdgeInsets.all(16),
       ),
     );
+  }
+
+  Future<bool> _waitForFileReady({
+    String? filePath,
+    String? taskId,
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    if (filePath == null) return false;
+    final file = File(filePath);
+
+    if (await file.exists()) return true;
+
+    final endTime = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(endTime)) {
+      if (await file.exists()) return true;
+
+      if (taskId != null) {
+        final taskReady = await DownloadService.waitForTaskCompletion(taskId);
+        if (taskReady) {
+          if (await file.exists()) return true;
+          // Android path healing: try fallback simple paths.
+          if (Platform.isAndroid) {
+            final fallbackPaths = [
+              '/storage/emulated/0/Download/${file.uri.pathSegments.last}',
+              '/storage/emulated/0/Download/MediaKeep/${file.uri.pathSegments.last}',
+              '/storage/emulated/0/Download/MediaKeep/video/${file.uri.pathSegments.last}',
+              '/storage/emulated/0/Download/MediaKeep/audio/${file.uri.pathSegments.last}',
+              '/storage/emulated/0/Download/MediaKeep/imagen/${file.uri.pathSegments.last}',
+            ];
+            for (final p in fallbackPaths) {
+              if (await File(p).exists()) {
+                return true;
+              }
+            }
+          }
+
+          return false;
+        }
+      }
+
+      await Future.delayed(const Duration(milliseconds: 900));
+    }
+
+    return false;
   }
 
   void _showLimitReachedModal(String message) {
@@ -597,40 +650,40 @@ class _DownloadScreenState extends State<DownloadScreen> {
   }
 
   Widget _buildTutorialOverlay() {
-    GlobalKey? _targetKey;
-    String _title = '';
-    String _message = '';
-    IconData _icon = Icons.info_outline;
+    GlobalKey? targetKey;
+    String title = '';
+    String message = '';
+    IconData icon = Icons.info_outline;
 
     switch (_tutorialStep) {
       case 0: // Copy Link
-        _targetKey = null;
-        _title = 'Paso 1: Enlace de Prueba';
-        _message =
+        targetKey = null;
+        title = 'Paso 1: Enlace de Prueba';
+        message =
             'Vamos a probar descargando un video. Haz clic abajo para copiar nuestro enlace de TikTok de prueba al portapapeles.';
-        _icon = Icons.content_copy_rounded;
+        icon = Icons.content_copy_rounded;
         break;
       case 1: // Paste Link
-        _targetKey = _pasteButtonKey;
-        _title = 'Paso 2: Pegar Enlace';
-        _message =
+        targetKey = _pasteButtonKey;
+        title = 'Paso 2: Pegar Enlace';
+        message =
             'Ahora toca el ícono resaltado para pegar el enlace y buscar el video automáticamente.';
-        _icon = Icons.paste_rounded;
+        icon = Icons.paste_rounded;
         break;
       case 2: // Press Download
-        _targetKey = _downloadButtonKey;
-        _title = 'Paso 3: Descargar';
-        _message =
+        targetKey = _downloadButtonKey;
+        title = 'Paso 3: Descargar';
+        message =
             '¡Video encontrado! Desliza y toca el botón resaltado de Video HD para comenzar la descarga y terminar el tutorial.';
-        _icon = Icons.download_rounded;
+        icon = Icons.download_rounded;
         break;
     }
 
     return SpotlightOverlay(
-      targetKey: _targetKey,
-      title: _title,
-      message: _message,
-      icon: _icon,
+      targetKey: targetKey,
+      title: title,
+      message: message,
+      icon: icon,
       skipButtonText: _tutorialStep == 0
           ? 'Omitir Tutorial'
           : 'Terminar Tutorial',

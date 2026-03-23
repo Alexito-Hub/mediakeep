@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io' show Platform;
 
 /// Service for managing app settings
 class SettingsService {
@@ -72,10 +75,23 @@ class SettingsService {
     return prefs.getBool(_autoDownloadKey) ?? false;
   }
 
-  /// Set auto-download (beta) enabled state
+  /// Set auto-download (beta) enabled state.
+  /// Writes to both Flutter SharedPreferences AND the native Android prefs
+  /// store ("MediaKeepPrefs") so the Quick Settings tile stays in sync.
   static Future<void> setAutoDownloadEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_autoDownloadKey, value);
+
+    // Sync with native Android prefs so the Quick Settings tile reads the same value
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        final channel = MethodChannel('com.mediakeep.aur/widget_actions');
+        await channel.invokeMethod(
+            'setAutoDownloadEnabled', {'enabled': value});
+      } catch (_) {
+        // Non-fatal — tile will just be desynchronized until next refresh
+      }
+    }
   }
 
   /// Check if user has completed the onboarding flow

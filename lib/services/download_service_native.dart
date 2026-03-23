@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:path_provider/path_provider.dart';
 import 'history_service.dart';
@@ -71,9 +72,11 @@ class DownloadService {
         filePath: savePath,
         fileName: fileName,
         subfolder: subfolder,
+        taskId: taskId,
       );
-    } catch (e) {
-      return DownloadResponse.error('Falló la descarga. Intenta de nuevo.');
+    } catch (e, stack) {
+      debugPrint('[DownloadService] Native background error: $e\n$stack');
+      return DownloadResponse.error('Falló la descarga: $e');
     }
   }
 
@@ -100,5 +103,38 @@ class DownloadService {
     safeTitle = safeTitle.trim().replaceAll(RegExp(r'\s+'), '_');
     if (safeTitle.length > 25) safeTitle = safeTitle.substring(0, 25);
     return 'MediaKeep_${safeTitle}_$timestamp.$extension';
+  }
+
+  /// Espera el estado de la tarea de FlutterDownloader hasta completarse o fallar.
+  static Future<bool> waitForTaskCompletion(
+    String taskId, {
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final endTime = DateTime.now().add(timeout);
+
+    while (DateTime.now().isBefore(endTime)) {
+      final tasks = await FlutterDownloader.loadTasks();
+      if (tasks != null) {
+        DownloadTask? task;
+        for (final t in tasks) {
+          if (t.taskId == taskId) {
+            task = t;
+            break;
+          }
+        }
+
+        if (task != null) {
+          if (task.status == DownloadTaskStatus.complete) return true;
+          if (task.status == DownloadTaskStatus.failed ||
+              task.status == DownloadTaskStatus.canceled) {
+            return false;
+          }
+        }
+      }
+
+      await Future.delayed(const Duration(milliseconds: 800));
+    }
+
+    return false;
   }
 }

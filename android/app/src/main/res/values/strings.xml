@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_widget_description">Widget de MediaKeep</string>
+    <string name="accessibility_service_description">Media Keep detecta URLs en el portapapeles para descarga automática</string>
 </resources>

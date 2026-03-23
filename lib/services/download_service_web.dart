@@ -29,4 +29,12 @@ class DownloadService {
       return DownloadResponse.error('Error al intentar abrir el enlace.');
     }
   }
+
+  static Future<bool> waitForTaskCompletion(
+    String taskId, {
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    // Web no tiene FlutterDownloader tasks; no puede esperarse.
+    return false;
+  }
 }

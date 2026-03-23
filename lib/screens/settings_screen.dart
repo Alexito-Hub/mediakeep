@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/settings_service.dart';
 import '../services/history_service.dart';
 import '../services/app_version_service.dart';
@@ -184,7 +185,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _showAutoDownloadInstructionSheet() async {
-    bool _permissionsGranted = false;
+    bool permissionsGranted = false;
 
     await showModalBottomSheet(
       context: context,
@@ -353,15 +354,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     await PermissionService.requestStorageWithRationale(
                                       context,
                                     );
-                                if (!context.mounted) return;
+                                if (!mounted) return;
                                 final notif =
                                     await PermissionService.requestNotificationWithRationale(
                                       context,
                                     );
                                 setSheetState(
-                                  () => _permissionsGranted = storage && notif,
+                                  () => permissionsGranted = storage && notif,
                                 );
-                                if (_permissionsGranted) {
+                                if (permissionsGranted) {
                                   _showToast('Permisos concedidos ✓');
                                 }
                               },
@@ -372,27 +373,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton.icon(
-                            icon: const Icon(Icons.check_rounded),
-                            label: const Text('Activar'),
-                            onPressed:
-                                (!kIsWeb &&
-                                    Platform.isAndroid &&
-                                    !_permissionsGranted)
-                                ? null // disabled until permissions granted
-                                : () async {
+                            icon: const Icon(Icons.accessibility_new_rounded),
+                            label: const Text('Ir a Ajustes de Accesibilidad'),
+                            onPressed: (!kIsWeb && Platform.isAndroid)
+                                ? () async {
                                     Navigator.pop(sheetCtx);
-                                    await SettingsService.setAutoDownloadEnabled(
-                                      true,
+                                    final channel = MethodChannel(
+                                      'com.mediakeep.aur/widget_actions',
                                     );
+                                    try {
+                                      await channel.invokeMethod(
+                                        'openAccessibilitySettings',
+                                      );
+                                    } catch (e) {
+                                      if (mounted) {
+                                        _showToast(
+                                          'No se pudo abrir Configuración',
+                                          isError: true,
+                                        );
+                                      }
+                                    }
                                     if (mounted) {
+                                      await SettingsService.setAutoDownloadEnabled(
+                                        true,
+                                      );
                                       setState(
                                         () => _autoDownloadEnabled = true,
                                       );
-                                      _showToast(
-                                        'Descargas automáticas activadas',
-                                      );
                                     }
-                                  },
+                                  }
+                                : null,
                           ),
                         ),
                         SizedBox(

@@ -131,7 +131,7 @@ class SpotlightOverlay extends StatelessWidget {
                     ? MainAxisAlignment.spaceBetween
                     : MainAxisAlignment.end,
                 children: [
-                  if (actionButton != null) actionButton!,
+                  if (actionButton != null) ...[actionButton!],
                   TextButton(
                     onPressed: onSkipOrFinish,
                     style: TextButton.styleFrom(

@@ -29,18 +29,52 @@ public class MediaKeepTileService extends TileService {
     public void onClick() {
         super.onClick();
 
-        boolean isEnabled = isAutoDownloadEnabled();
-        setAutoDownloadEnabled(!isEnabled);
+        boolean isCurrentlyEnabled = isAutoDownloadEnabled();
 
-        if (!isEnabled) {
-            // Activar
+        if (!isCurrentlyEnabled) {
+            // Trying to enable. First check if AccessibilityService is active!
+            if (!isAccessibilityServiceEnabled()) {
+                // Not enabled. Open settings and don't enable the tile.
+                Intent accIntent = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                accIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                if (android.os.Build.VERSION.SDK_INT >= 34) {
+                    android.app.PendingIntent pendingIntent = android.app.PendingIntent.getActivity(
+                            this, 0, accIntent,
+                            android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT
+                    );
+                    startActivityAndCollapse(pendingIntent);
+                } else {
+                    startActivityAndCollapse(accIntent);
+                }
+                return;
+            }
+
+            // It's active, we can proceed
+            setAutoDownloadEnabled(true);
             startClipboardMonitoring();
         } else {
-            // Desactivar
+            // Trying to disable
+            setAutoDownloadEnabled(false);
             stopClipboardMonitoring();
         }
 
         updateTileState();
+    }
+
+    private boolean isAccessibilityServiceEnabled() {
+        android.content.ComponentName expectedComponentName = new android.content.ComponentName(this, MediaKeepAccessibilityService.class);
+        String enabledServicesSetting = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        if (enabledServicesSetting == null) return false;
+        android.text.TextUtils.SimpleStringSplitter colonSplitter = new android.text.TextUtils.SimpleStringSplitter(':');
+        colonSplitter.setString(enabledServicesSetting);
+        while (colonSplitter.hasNext()) {
+            String componentNameString = colonSplitter.next();
+            android.content.ComponentName enabledService = android.content.ComponentName.unflattenFromString(componentNameString);
+            if (enabledService != null && enabledService.equals(expectedComponentName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isAutoDownloadEnabled() {

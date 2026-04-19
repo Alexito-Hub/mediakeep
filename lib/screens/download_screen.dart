@@ -293,7 +293,9 @@ class _DownloadScreenState extends State<DownloadScreen> {
             break;
         }
       } else {
-        _showError(response.errorMessage ?? 'No se encontró contenido descargable.');
+        _showError(
+          response.errorMessage ?? 'No se encontró contenido descargable.',
+        );
       }
     } catch (e) {
       _showError('Ocurrió un error inesperado al parsear los datos.');

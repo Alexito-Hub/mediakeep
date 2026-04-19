@@ -19,11 +19,7 @@ class SpotifyExtractor {
 
     return {
       'status': true,
-      'data': {
-        ...info,
-        'download': downloadUrl,
-        'preview': null,
-      },
+      'data': {...info, 'download': downloadUrl, 'preview': null},
     };
   }
 
@@ -119,7 +115,9 @@ class SpotifyExtractor {
         .timeout(AppConstants.apiTimeout);
 
     if (response.statusCode < 200 || response.statusCode >= 400) {
-      throw Exception('No se pudo obtener token Spotify (${response.statusCode})');
+      throw Exception(
+        'No se pudo obtener token Spotify (${response.statusCode})',
+      );
     }
 
     final body = ExtractorUtils.decodeJsonMap(response.bodyBytes);
@@ -149,7 +147,8 @@ class SpotifyExtractor {
         .get<dynamic>(ScraperConfig.spotifyHomeUrl)
         .timeout(AppConstants.apiTimeout);
 
-    final setCookies = homeResponse.headers.map['set-cookie'] ?? const <String>[];
+    final setCookies =
+        homeResponse.headers.map['set-cookie'] ?? const <String>[];
     final token = _extractCookieFromSetCookies(setCookies, 'XSRF-TOKEN');
     if (token == null || token.isEmpty) {
       throw Exception('CSRF Token missing');
@@ -188,7 +187,10 @@ class SpotifyExtractor {
     return url;
   }
 
-  static String? _extractCookieFromSetCookies(List<String> setCookies, String key) {
+  static String? _extractCookieFromSetCookies(
+    List<String> setCookies,
+    String key,
+  ) {
     for (final cookie in setCookies) {
       final value = ExtractorUtils.extractCookieValue(cookie, key);
       if (value != null && value.isNotEmpty) {

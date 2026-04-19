@@ -75,44 +75,80 @@ class YouTubeExtractor {
         },
         'channel': {
           'name': ExtractorUtils.nested(api, ['userInfo', 'name'])?.toString(),
-          'user':
-              ExtractorUtils.nested(api, ['userInfo', 'username'])?.toString(),
+          'user': ExtractorUtils.nested(api, [
+            'userInfo',
+            'username',
+          ])?.toString(),
           'id': ExtractorUtils.nested(api, ['userInfo', 'userId'])?.toString(),
-          'avatar':
-              ExtractorUtils.nested(api, ['userInfo', 'userAvatar'])?.toString(),
-          'verified':
-              ExtractorUtils.toBool(ExtractorUtils.nested(api, ['userInfo', 'isVerified'])),
-          'site':
-              ExtractorUtils.nested(api, ['userInfo', 'externalUrl'])?.toString(),
-          'bio': ExtractorUtils.nested(api, ['userInfo', 'userBio'])?.toString(),
-          'category':
-              ExtractorUtils.nested(api, ['userInfo', 'userCategory'])?.toString(),
-          'internal':
-              ExtractorUtils.nested(api, ['userInfo', 'internalUrl'])?.toString(),
-          'country':
-              ExtractorUtils.nested(api, ['userInfo', 'accountCountry'])?.toString(),
-          'joined':
-              ExtractorUtils.nested(api, ['userInfo', 'dateJoined'])?.toString(),
+          'avatar': ExtractorUtils.nested(api, [
+            'userInfo',
+            'userAvatar',
+          ])?.toString(),
+          'verified': ExtractorUtils.toBool(
+            ExtractorUtils.nested(api, ['userInfo', 'isVerified']),
+          ),
+          'site': ExtractorUtils.nested(api, [
+            'userInfo',
+            'externalUrl',
+          ])?.toString(),
+          'bio': ExtractorUtils.nested(api, [
+            'userInfo',
+            'userBio',
+          ])?.toString(),
+          'category': ExtractorUtils.nested(api, [
+            'userInfo',
+            'userCategory',
+          ])?.toString(),
+          'internal': ExtractorUtils.nested(api, [
+            'userInfo',
+            'internalUrl',
+          ])?.toString(),
+          'country': ExtractorUtils.nested(api, [
+            'userInfo',
+            'accountCountry',
+          ])?.toString(),
+          'joined': ExtractorUtils.nested(api, [
+            'userInfo',
+            'dateJoined',
+          ])?.toString(),
         },
         'stats': {
-          'views':
-              ExtractorUtils.nested(api, ['mediaStats', 'viewsCount'])?.toString(),
-          'vids':
-              ExtractorUtils.nested(api, ['mediaStats', 'mediaCount'])?.toString(),
-          'subs':
-              ExtractorUtils.nested(api, ['mediaStats', 'followersCount'])?.toString(),
-          'following':
-              ExtractorUtils.nested(api, ['mediaStats', 'followingCount'])?.toString(),
-          'likes':
-              ExtractorUtils.nested(api, ['mediaStats', 'likesCount'])?.toString(),
-          'comments':
-              ExtractorUtils.nested(api, ['mediaStats', 'commentsCount'])?.toString(),
-          'favorites':
-              ExtractorUtils.nested(api, ['mediaStats', 'favouritesCount'])?.toString(),
-          'shares':
-              ExtractorUtils.nested(api, ['mediaStats', 'sharesCount'])?.toString(),
-          'downloads':
-              ExtractorUtils.nested(api, ['mediaStats', 'downloadsCount'])?.toString(),
+          'views': ExtractorUtils.nested(api, [
+            'mediaStats',
+            'viewsCount',
+          ])?.toString(),
+          'vids': ExtractorUtils.nested(api, [
+            'mediaStats',
+            'mediaCount',
+          ])?.toString(),
+          'subs': ExtractorUtils.nested(api, [
+            'mediaStats',
+            'followersCount',
+          ])?.toString(),
+          'following': ExtractorUtils.nested(api, [
+            'mediaStats',
+            'followingCount',
+          ])?.toString(),
+          'likes': ExtractorUtils.nested(api, [
+            'mediaStats',
+            'likesCount',
+          ])?.toString(),
+          'comments': ExtractorUtils.nested(api, [
+            'mediaStats',
+            'commentsCount',
+          ])?.toString(),
+          'favorites': ExtractorUtils.nested(api, [
+            'mediaStats',
+            'favouritesCount',
+          ])?.toString(),
+          'shares': ExtractorUtils.nested(api, [
+            'mediaStats',
+            'sharesCount',
+          ])?.toString(),
+          'downloads': ExtractorUtils.nested(api, [
+            'mediaStats',
+            'downloadsCount',
+          ])?.toString(),
         },
         'videos': videos,
         'audios': audios,

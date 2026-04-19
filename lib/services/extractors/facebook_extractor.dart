@@ -7,8 +7,10 @@ import 'scraper_config.dart';
 
 class FacebookExtractor {
   static Future<Map<String, dynamic>> fetch(String sourceUrl) async {
-    if (!RegExp(r'facebook\.com|fb\.watch', caseSensitive: false)
-        .hasMatch(sourceUrl)) {
+    if (!RegExp(
+      r'facebook\.com|fb\.watch',
+      caseSensitive: false,
+    ).hasMatch(sourceUrl)) {
       throw Exception('Invalid Facebook URL');
     }
 
@@ -71,7 +73,8 @@ class FacebookExtractor {
         og('og:title') ??
         'Facebook User';
 
-    final author = rawAuthor
+    final author =
+        rawAuthor
             .replaceAll(RegExp(r'&#\w+;'), '')
             .split(' | ')[0]
             .split(' posted a ')[0]
@@ -89,7 +92,8 @@ class FacebookExtractor {
         ? msg['text']?.toString() ?? (og('og:description') ?? 'Facebook Post')
         : (msg?.toString() ?? (og('og:description') ?? 'Facebook Post'));
 
-    final ts = ExtractorUtils.toNullableInt(get('creation_time')) ??
+    final ts =
+        ExtractorUtils.toNullableInt(get('creation_time')) ??
         ExtractorUtils.toNullableInt(get('publish_time'));
 
     final base = <String, dynamic>{
@@ -125,11 +129,7 @@ class FacebookExtractor {
       if (images.isNotEmpty) {
         return {
           'status': true,
-          'data': {
-            ...base,
-            'type': 'album',
-            'images': images,
-          },
+          'data': {...base, 'type': 'album', 'images': images},
         };
       }
     }
@@ -141,8 +141,10 @@ class FacebookExtractor {
         ExtractorUtils.decodeMaybeEscaped(get('playable_url'));
 
     if (videoUrl != null && videoUrl.isNotEmpty) {
-      final preferredThumb =
-          ExtractorUtils.pickRecursive(get('preferred_thumbnail'), 'uri');
+      final preferredThumb = ExtractorUtils.pickRecursive(
+        get('preferred_thumbnail'),
+        'uri',
+      );
       return {
         'status': true,
         'data': {
@@ -150,7 +152,8 @@ class FacebookExtractor {
           'type': 'video',
           'download': videoUrl,
           'thumbnail':
-              ExtractorUtils.decodeMaybeEscaped(preferredThumb) ?? og('og:image'),
+              ExtractorUtils.decodeMaybeEscaped(preferredThumb) ??
+              og('og:image'),
           'duration': ExtractorUtils.toInt(get('playable_duration_in_ms')),
         },
       };
@@ -166,11 +169,7 @@ class FacebookExtractor {
     if (imgUri != null && imgUri.isNotEmpty) {
       return {
         'status': true,
-        'data': {
-          ...base,
-          'type': 'image',
-          'download': imgUri,
-        },
+        'data': {...base, 'type': 'image', 'download': imgUri},
       };
     }
 

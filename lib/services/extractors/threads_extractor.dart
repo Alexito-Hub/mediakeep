@@ -16,8 +16,10 @@ class ThreadsExtractor {
     }
 
     final html = utf8.decode(response.bodyBytes, allowMalformed: true);
-    final cleaned =
-        ExtractorUtils.extractJsonArrayAfterKey(html, '"thread_items":');
+    final cleaned = ExtractorUtils.extractJsonArrayAfterKey(
+      html,
+      '"thread_items":',
+    );
     if (cleaned == null) {
       return {'status': false, 'url': sourceUrl};
     }
@@ -40,8 +42,9 @@ class ThreadsExtractor {
 
     final resultBase = {
       'status': true,
-      'title':
-          ExtractorUtils.parseEscaped(caption?['text']?.toString() ?? 'unknown'),
+      'title': ExtractorUtils.parseEscaped(
+        caption?['text']?.toString() ?? 'unknown',
+      ),
       'likes': ExtractorUtils.toInt(post['like_count']),
       'repost': ExtractorUtils.toInt(postInfo['repost_count']),
       'reshare': ExtractorUtils.toInt(postInfo['reshare_count']),
@@ -57,7 +60,8 @@ class ThreadsExtractor {
 
     final videoVersions = ExtractorUtils.asList(post['video_versions']);
     if (videoVersions.isNotEmpty) {
-      final picked = ExtractorUtils.pickIndex(videoVersions, 1) ??
+      final picked =
+          ExtractorUtils.pickIndex(videoVersions, 1) ??
           ExtractorUtils.pickIndex(videoVersions, 0);
       final vMap = ExtractorUtils.asMap(picked) ?? <String, dynamic>{};
       return {
@@ -106,7 +110,8 @@ class ThreadsExtractor {
 
         final vv = ExtractorUtils.asList(map['video_versions']);
         if (vv.isNotEmpty) {
-          final v1 = ExtractorUtils.pickIndex(vv, 1) ??
+          final v1 =
+              ExtractorUtils.pickIndex(vv, 1) ??
               ExtractorUtils.pickIndex(vv, 0);
           final vMap = ExtractorUtils.asMap(v1);
           url = vMap?['url']?.toString();
@@ -126,10 +131,7 @@ class ThreadsExtractor {
       }
 
       if (media.isNotEmpty) {
-        return {
-          ...resultBase,
-          'download': media,
-        };
+        return {...resultBase, 'download': media};
       }
     }
 

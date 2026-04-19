@@ -34,9 +34,6 @@ class TwitterExtractor {
       filtered[entry.key] = entry.value;
     }
 
-    return {
-      'status': true,
-      'data': filtered,
-    };
+    return {'status': true, 'data': filtered};
   }
 }

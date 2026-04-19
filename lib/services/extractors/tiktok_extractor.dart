@@ -25,7 +25,8 @@ class TikTokExtractor {
     final duration = ExtractorUtils.toInt(data['duration']);
     final images = ExtractorUtils.toStringList(data['images']);
 
-    final authorRaw = ExtractorUtils.asMap(data['author']) ?? <String, dynamic>{};
+    final authorRaw =
+        ExtractorUtils.asMap(data['author']) ?? <String, dynamic>{};
     final author = {
       'nickname':
           authorRaw['nickname']?.toString() ??
@@ -38,17 +39,12 @@ class TikTokExtractor {
         ExtractorUtils.asMap(data['music_info']) ?? <String, dynamic>{};
     final music = {
       'title': musicRaw['title']?.toString() ?? 'Sonido original',
-      'play':
-          musicRaw['play']?.toString() ?? musicRaw['url']?.toString() ?? '',
+      'play': musicRaw['play']?.toString() ?? musicRaw['url']?.toString() ?? '',
       'author': musicRaw['author']?.toString() ?? '',
     };
 
     final media = duration == 0
-        ? {
-            'type': 'image',
-            'images': images,
-            'image_count': images.length,
-          }
+        ? {'type': 'image', 'images': images, 'image_count': images.length}
         : {
             'type': 'video',
             'duration': duration,
@@ -58,7 +54,9 @@ class TikTokExtractor {
               'hd': {
                 'size': ExtractorUtils.toInt(data['hd_size']),
                 'play':
-                    data['hdplay']?.toString() ?? data['play']?.toString() ?? '',
+                    data['hdplay']?.toString() ??
+                    data['play']?.toString() ??
+                    '',
               },
             },
             'watermark': {

@@ -56,7 +56,9 @@ class ApiService {
 
       return ApiResponse.success(data: payload, platform: platform);
     } on TimeoutException {
-      return ApiResponse.error('La operación tardó demasiado. Intenta de nuevo.');
+      return ApiResponse.error(
+        'La operación tardó demasiado. Intenta de nuevo.',
+      );
     } catch (e) {
       return ApiResponse.error(_humanizeError(platform, e));
     }

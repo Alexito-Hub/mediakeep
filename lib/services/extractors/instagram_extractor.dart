@@ -9,7 +9,10 @@ import 'scraper_config.dart';
 class InstagramExtractor {
   static Future<Map<String, dynamic>> fetch(String sourceUrl) async {
     final verifyReq =
-        http.MultipartRequest('POST', Uri.parse(ScraperConfig.instagramVerifyUrl))
+        http.MultipartRequest(
+            'POST',
+            Uri.parse(ScraperConfig.instagramVerifyUrl),
+          )
           ..fields['url'] = sourceUrl
           ..headers.addAll({
             ...ScraperConfig.defaultHeaders(),
@@ -19,10 +22,14 @@ class InstagramExtractor {
 
     final verifyResp = await verifyReq.send().timeout(AppConstants.apiTimeout);
     final verifyBodyText = await verifyResp.stream.bytesToString();
-    final verifyBody = ExtractorUtils.decodeJsonMap(utf8.encode(verifyBodyText));
+    final verifyBody = ExtractorUtils.decodeJsonMap(
+      utf8.encode(verifyBodyText),
+    );
     final token = verifyBody['token']?.toString();
     final verifySetCookie = verifyResp.headers['set-cookie'] ?? '';
-    final verifyCookieHeader = ExtractorUtils.buildCookieHeader(verifySetCookie);
+    final verifyCookieHeader = ExtractorUtils.buildCookieHeader(
+      verifySetCookie,
+    );
 
     if (verifyResp.statusCode < 200 ||
         verifyResp.statusCode >= 400 ||
@@ -32,7 +39,10 @@ class InstagramExtractor {
     }
 
     final searchReq =
-        http.MultipartRequest('POST', Uri.parse(ScraperConfig.instagramSearchUrl))
+        http.MultipartRequest(
+            'POST',
+            Uri.parse(ScraperConfig.instagramSearchUrl),
+          )
           ..fields['q'] = sourceUrl
           ..fields['t'] = 'media'
           ..fields['lang'] = 'es'
@@ -47,9 +57,13 @@ class InstagramExtractor {
             if (verifyCookieHeader.isNotEmpty) 'cookie': verifyCookieHeader,
           });
 
-    final searchResp = await searchReq.send().timeout(const Duration(seconds: 25));
+    final searchResp = await searchReq.send().timeout(
+      const Duration(seconds: 25),
+    );
     final searchBodyText = await searchResp.stream.bytesToString();
-    final searchBody = ExtractorUtils.decodeJsonMap(utf8.encode(searchBodyText));
+    final searchBody = ExtractorUtils.decodeJsonMap(
+      utf8.encode(searchBodyText),
+    );
 
     final html = searchBody['data']?.toString();
     if (searchResp.statusCode < 200 ||
@@ -61,7 +75,9 @@ class InstagramExtractor {
 
     final media = _parseInstagramMedia(html);
     if (media.isEmpty) {
-      throw Exception('No media found. The post may be private or unavailable.');
+      throw Exception(
+        'No media found. The post may be private or unavailable.',
+      );
     }
 
     return {

@@ -40,14 +40,20 @@ class BilibiliExtractor {
 
     final html = utf8.decode(pageResp.bodyBytes, allowMalformed: true);
 
-    final title = ExtractorUtils.extractMetaContent(html, 'og:title')
-        ?.split('|')
-        .first
-        .trim();
-    final description = ExtractorUtils.extractMetaContent(html, 'og:description');
+    final title = ExtractorUtils.extractMetaContent(
+      html,
+      'og:title',
+    )?.split('|').first.trim();
+    final description = ExtractorUtils.extractMetaContent(
+      html,
+      'og:description',
+    );
     final type = ExtractorUtils.extractMetaContent(html, 'og:video:type');
     final cover = ExtractorUtils.extractMetaContent(html, 'og:image');
-    final duration = ExtractorUtils.extractMetaContent(html, 'og:video:duration');
+    final duration = ExtractorUtils.extractMetaContent(
+      html,
+      'og:video:duration',
+    );
 
     final playUri = Uri.parse(ScraperConfig.bilibiliPlayUrl).replace(
       queryParameters: {
@@ -82,8 +88,8 @@ class BilibiliExtractor {
       final map = ExtractorUtils.asMap(item);
       if (map == null) continue;
 
-      final streamInfo = ExtractorUtils.asMap(map['stream_info']) ??
-          <String, dynamic>{};
+      final streamInfo =
+          ExtractorUtils.asMap(map['stream_info']) ?? <String, dynamic>{};
       final resource =
           ExtractorUtils.asMap(map['video_resource']) ?? <String, dynamic>{};
       final url = resource['url']?.toString() ?? '';

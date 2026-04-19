@@ -131,8 +131,7 @@ class DownloaderAppState extends State<DownloaderApp>
         Navigator.pushReplacement(
           navigatorKey.currentContext!,
           MaterialPageRoute(
-            builder: (_) =>
-                url != null && url.isNotEmpty
+            builder: (_) => url != null && url.isNotEmpty
                 ? DownloadScreen(initialUrl: url)
                 : const DownloadScreen(),
           ),

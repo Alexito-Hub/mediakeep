@@ -128,13 +128,6 @@ class PermissionService {
   static Future<void> requestAllPermissions() async {
     await requestStoragePermissions();
     await requestNotificationPermissions();
-
-    if (kIsWeb) return;
-    if (Platform.isAndroid) {
-      if (await Permission.systemAlertWindow.isDenied) {
-        await Permission.systemAlertWindow.request();
-      }
-    }
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────

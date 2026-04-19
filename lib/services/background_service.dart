@@ -14,8 +14,28 @@ void backgroundMain() {
   // Set up the method call handler
   channel.setMethodCallHandler((MethodCall call) async {
     if (call.method == 'startDownload') {
-      final String url = call.arguments as String;
-      await _handleBackgroundDownload(url, channel);
+      final args = call.arguments;
+      if (args is! Map) {
+        await channel.invokeMethod('downloadError', {
+          'message':
+              'Solicitud rechazada: accion en segundo plano no autorizada.',
+        });
+        return;
+      }
+
+      final dynamic urlValue = args['url'];
+      final dynamic triggerValue = args['trigger'];
+      if (urlValue is! String ||
+          urlValue.trim().isEmpty ||
+          triggerValue != 'share_confirmation') {
+        await channel.invokeMethod('downloadError', {
+          'message':
+              'Solicitud rechazada: se requiere confirmacion explicita del usuario.',
+        });
+        return;
+      }
+
+      await _handleBackgroundDownload(urlValue.trim(), channel);
     }
   });
 }

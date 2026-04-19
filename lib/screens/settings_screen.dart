@@ -1,10 +1,8 @@
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../services/settings_service.dart';
 import '../services/history_service.dart';
 import '../services/app_version_service.dart';
-import '../services/permission_service.dart';
 import '../main.dart';
 import '../utils/responsive.dart';
 import '../utils/app_routes.dart';
@@ -17,7 +15,6 @@ import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 import 'status_screen.dart';
 import 'changelog_screen.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// Settings screen for app configuration
 class SettingsScreen extends StatefulWidget {
@@ -31,19 +28,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ThemeMode _currentThemeMode = ThemeMode.system;
   final TextEditingController _messageController = TextEditingController();
   bool _isLoading = true;
-  bool _autoDownloadEnabled = false;
   String _appVersion = 'Cargando...';
   static const _kSectionTitles = [
     'Apariencia',
     'Compartir',
     'Almacenamiento',
-    'Beta',
+    'Descarga segura',
   ];
   static const _kSectionIcons = [
     Icons.palette_rounded,
     Icons.share_rounded,
     Icons.folder_rounded,
-    Icons.science_rounded,
+    Icons.verified_user_rounded,
   ];
 
   @override
@@ -62,13 +58,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final themeMode = await SettingsService.getThemeMode();
     final shareMessage = await SettingsService.getShareMessage();
     final version = await AppVersionService.getVersion();
-    final autoDownload = await SettingsService.getAutoDownloadEnabled();
 
     setState(() {
       _currentThemeMode = themeMode;
       _messageController.text = shareMessage;
       _appVersion = version;
-      _autoDownloadEnabled = autoDownload;
       _isLoading = false;
     });
   }
@@ -171,296 +165,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // ── Auto-Download beta ───────────────────────────────────────────────────
-
-  Future<void> _toggleAutoDownload(bool value) async {
-    if (value) {
-      // Show instruction bottom sheet — user must confirm before enabling
-      await _showAutoDownloadInstructionSheet();
-    } else {
-      await SettingsService.setAutoDownloadEnabled(false);
-      setState(() => _autoDownloadEnabled = false);
-      _showToast('Descargas automáticas desactivadas');
-    }
-  }
-
-  Future<void> _showAutoDownloadInstructionSheet() async {
-    bool permissionsGranted = false;
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      enableDrag: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetCtx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            return DraggableScrollableSheet(
-              expand: false,
-              initialChildSize: 0.65,
-              minChildSize: 0.4,
-              maxChildSize: 0.9,
-              builder: (_, scrollCtrl) {
-                return SingleChildScrollView(
-                  controller: scrollCtrl,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // drag handle
-                        Center(
-                          child: Container(
-                            width: 40,
-                            height: 4,
-                            margin: const EdgeInsets.only(bottom: 20),
-                            decoration: BoxDecoration(
-                              color: Theme.of(ctx).colorScheme.outlineVariant,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-
-                        // Header
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.shade700,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.science_rounded,
-                                    size: 14,
-                                    color: Colors.white,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'BETA',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'Descargas Automáticas',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Cuando está activo, MediaKeep monitorea el portapapeles en segundo plano '
-                          'y descarga automáticamente cualquier enlace compatible que copies.',
-                          style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Instructions
-                        Text(
-                          'Cómo habilitarlo',
-                          style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildStep(
-                          ctx,
-                          number: 1,
-                          icon: Icons.toggle_on_rounded,
-                          text:
-                              'Activa esta función desde la sección Beta en Configuración (ya estás aquí).',
-                        ),
-                        _buildStep(
-                          ctx,
-                          number: 2,
-                          icon: Icons.content_paste_rounded,
-                          text:
-                              'Concede el permiso de almacenamiento y notificaciones cuando se solicite.',
-                        ),
-                        _buildStep(
-                          ctx,
-                          number: 3,
-                          icon: Icons.copy_rounded,
-                          text:
-                              'Copia cualquier enlace de TikTok, Instagram, Facebook, Spotify u otras plataformas soportadas — MediaKeep lo detectará y descargará automáticamente.',
-                        ),
-
-                        // Warning
-                        const SizedBox(height: 20),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.amber.shade700,
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                Icons.warning_amber_rounded,
-                                color: Colors.amber.shade700,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Esta función está en fase beta. Puede presentar inconsistencias. '
-                                  'El monitoreo de portapapeles solo está disponible en Android.',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.amber.shade800,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 28),
-
-                        // Action buttons
-                        if (!kIsWeb && Platform.isAndroid) ...[
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.lock_open_rounded),
-                              label: const Text('Solicitar permisos'),
-                              onPressed: () async {
-                                final storage =
-                                    await PermissionService.requestStorageWithRationale(
-                                      context,
-                                    );
-                                if (!mounted) return;
-                                final notif =
-                                    await PermissionService.requestNotificationWithRationale(
-                                      context,
-                                    );
-                                setSheetState(
-                                  () => permissionsGranted = storage && notif,
-                                );
-                                if (permissionsGranted) {
-                                  _showToast('Permisos concedidos ✓');
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            icon: const Icon(Icons.accessibility_new_rounded),
-                            label: const Text('Ir a Ajustes de Accesibilidad'),
-                            onPressed: (!kIsWeb && Platform.isAndroid)
-                                ? () async {
-                                    Navigator.pop(sheetCtx);
-                                    final channel = MethodChannel(
-                                      'com.mediakeep.aur/widget_actions',
-                                    );
-                                    try {
-                                      await channel.invokeMethod(
-                                        'openAccessibilitySettings',
-                                      );
-                                    } catch (e) {
-                                      if (mounted) {
-                                        _showToast(
-                                          'No se pudo abrir Configuración',
-                                          isError: true,
-                                        );
-                                      }
-                                    }
-                                    if (mounted) {
-                                      await SettingsService.setAutoDownloadEnabled(
-                                        true,
-                                      );
-                                      setState(
-                                        () => _autoDownloadEnabled = true,
-                                      );
-                                    }
-                                  }
-                                : null,
-                          ),
-                        ),
-                        SizedBox(
-                          width: double.infinity,
-                          child: TextButton(
-                            onPressed: () => Navigator.pop(sheetCtx),
-                            child: const Text('Cancelar'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildStep(
-    BuildContext ctx, {
-    required int number,
-    required IconData icon,
-    required String text,
-  }) {
-    final theme = Theme.of(ctx);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              '$number',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: theme.colorScheme.onPrimaryContainer,
+  Widget _buildDownloadComplianceSection() => _buildSection(
+    title: 'Descarga segura',
+    icon: Icons.verified_user_rounded,
+    children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Media Keep solo inicia descargas mediante acciones explícitas del usuario.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Icon(icon, size: 18, color: theme.colorScheme.primary),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text, style: theme.textTheme.bodySmall)),
-        ],
+            const SizedBox(height: 14),
+            Text(
+              'Flujo actual',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            const Text('1. Comparte un enlace con Media Keep.'),
+            const SizedBox(height: 6),
+            const Text('2. Confirma la descarga cuando la app lo solicite.'),
+            const SizedBox(height: 6),
+            const Text(
+              '3. El contenido se descarga y se notifica al finalizar.',
+            ),
+          ],
+        ),
       ),
-    );
-  }
+    ],
+  );
 
   Widget _buildAparienciaSection() => _buildSection(
     title: 'Apariencia',
@@ -540,22 +288,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         subtitle: const Text('MediaKeep/'),
         trailing: const Icon(Icons.chevron_right),
         onTap: _openDownloadsFolder,
-      ),
-    ],
-  );
-
-  Widget _buildFuncionesBetaSection() => _buildSection(
-    title: 'Funciones Beta',
-    icon: Icons.science_rounded,
-    children: [
-      SwitchListTile(
-        secondary: const Icon(Icons.download_for_offline_rounded),
-        title: const Text('Descargas automáticas'),
-        subtitle: const Text(
-          'Descarga automáticamente los enlaces que copies al portapapeles',
-        ),
-        value: _autoDownloadEnabled,
-        onChanged: _toggleAutoDownload,
       ),
     ],
   );
@@ -681,7 +413,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
               _buildAlmacenamientoSection(),
               const SizedBox(height: 24),
-              _buildFuncionesBetaSection(),
+              _buildDownloadComplianceSection(),
               const SizedBox(height: 24),
               _buildAcercaDeSection(),
               const SizedBox(height: 40),
@@ -700,7 +432,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _buildAparienciaSection,
       _buildCompartirSection,
       () => _buildAlmacenamientoDesktopSection(theme),
-      _buildFuncionesBetaSection,
+      _buildDownloadComplianceSection,
     ];
 
     return DefaultTabController(

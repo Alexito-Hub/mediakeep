@@ -8,8 +8,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
@@ -64,38 +62,12 @@
                 android:resource="@xml/widget_info" />
         </receiver>
 
-        <!-- Quick Settings Tile Service -->
+        <!-- Explicit user-confirmed background download service -->
         <service
-            android:name=".MediaKeepTileService"
-            android:icon="@drawable/ic_tile_mediakeep"
-            android:label="Media Keep"
-            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE" />
-            </intent-filter>
-        </service>
-        
-        <!-- Clipboard Monitor Foreground Service -->
-        <service
-            android:name=".ClipboardMonitorService"
+            android:name=".ExplicitDownloadService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
-
-        <!-- Accessibility Service for clipboard monitoring (Android 10+) -->
-        <service
-            android:name=".MediaKeepAccessibilityService"
-            android:exported="true"
-            android:label="Media Keep Auto-Download"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
         
         <!-- Notification Action Handler -->
         <receiver

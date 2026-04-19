@@ -206,6 +206,20 @@ class _DownloadScreenState extends State<DownloadScreen> {
       return;
     }
 
+    final shouldRequestBackgroundConfirmation =
+        !kIsWeb &&
+        Platform.isAndroid &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed;
+
+    if (shouldRequestBackgroundConfirmation) {
+      unawaited(_showBackgroundShareConfirmation(url));
+      return;
+    }
+
+    _applySharedUrlAndFetch(url);
+  }
+
+  void _applySharedUrlAndFetch(String url) {
     setState(() {
       _controller.text = url;
       _inputHintMessage = null;
@@ -218,6 +232,20 @@ class _DownloadScreenState extends State<DownloadScreen> {
         _fetchMedia();
       }
     });
+  }
+
+  Future<void> _showBackgroundShareConfirmation(String url) async {
+    const channel = MethodChannel('com.mediakeep.aur/widget_actions');
+    try {
+      await channel.invokeMethod('showShareDownloadConfirmation', {'url': url});
+      if (mounted) {
+        _showToast('Confirma la descarga desde la notificación.');
+      }
+    } catch (e) {
+      debugPrint('Error showing share confirmation notification: $e');
+      if (!mounted) return;
+      _applySharedUrlAndFetch(url);
+    }
   }
 
   @override

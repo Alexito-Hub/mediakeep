@@ -12,6 +12,23 @@ class ScraperConfig {
   static const String bilibiliPlayUrl =
       'https://api.bilibili.tv/intl/gateway/web/playurl';
 
+  static List<String> endpointUrls() {
+    return const <String>[
+      youtubeProxyUrl,
+      tiktokApiUrl,
+      twitterApiUrl,
+      spotifyConvertUrl,
+      spotifyHomeUrl,
+      instagramVerifyUrl,
+      instagramSearchUrl,
+      bilibiliPlayUrl,
+    ];
+  }
+
+  static bool usesOnlySecureEndpoints() {
+    return endpointUrls().every((url) => url.startsWith('https://'));
+  }
+
   static Map<String, String> defaultHeaders() {
     return <String, String>{
       'User-Agent':

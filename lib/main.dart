@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 
 import 'screens/history_screen.dart';
 import 'screens/settings_screen.dart';
@@ -22,19 +22,21 @@ import 'services/widget_service.dart';
 import 'services/quick_actions_service.dart';
 import 'services/download_progress_service.dart';
 import 'services/background_download_handler.dart';
+import 'services/extractors/scraper_config.dart';
 import 'utils/app_routes.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  assert(
+    ScraperConfig.usesOnlySecureEndpoints(),
+    'ScraperConfig must define HTTPS endpoints only.',
+  );
+
   // Initialize FlutterDownloader y Ads (Mobile Only)
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-    await FlutterDownloader.initialize(
-      debug: true, // Optional: set to false to disable printing logs to console
-      ignoreSsl:
-          true, // Option: set to false to disable working with http links
-    );
+    await FlutterDownloader.initialize(debug: kDebugMode, ignoreSsl: false);
     await DownloadProgressService.instance.ensureInitialized();
     // Eliminado: inicialización de anuncios
   }
@@ -126,14 +128,15 @@ class DownloaderAppState extends State<DownloaderApp>
       } else if (action.contains('DOWNLOAD_FROM_WIDGET')) {
         // Redirigir a la pantalla de descarga
         navigatorKey.currentState?.popUntil((route) => route.isFirst);
-        if (url != null && url.isNotEmpty) {
-          // Si hay una URL en el portapapeles, la pasamos
-          // (Podemos extender DownloadScreen para recibir una URL inicial)
-          Navigator.pushReplacement(
-            navigatorKey.currentContext!,
-            MaterialPageRoute(builder: (_) => DownloadScreen(initialUrl: url)),
-          );
-        }
+        Navigator.pushReplacement(
+          navigatorKey.currentContext!,
+          MaterialPageRoute(
+            builder: (_) =>
+                url != null && url.isNotEmpty
+                ? DownloadScreen(initialUrl: url)
+                : const DownloadScreen(),
+          ),
+        );
       }
     };
   }
@@ -357,7 +360,7 @@ void backgroundMain() async {
 
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     try {
-      await FlutterDownloader.initialize(debug: true, ignoreSsl: true);
+      await FlutterDownloader.initialize(debug: kDebugMode, ignoreSsl: false);
     } catch (e) {
       debugPrint('[Background] FlutterDownloader init error: $e');
     }
@@ -369,8 +372,28 @@ void backgroundMain() async {
   // Set up the method call handler
   channel.setMethodCallHandler((MethodCall call) async {
     if (call.method == 'startDownload') {
-      final String url = call.arguments as String;
-      await _handleBackgroundDownload(url, channel);
+      final args = call.arguments;
+      if (args is! Map) {
+        await channel.invokeMethod('downloadError', {
+          'message':
+              'Solicitud rechazada: accion en segundo plano no autorizada.',
+        });
+        return;
+      }
+
+      final dynamic urlValue = args['url'];
+      final dynamic triggerValue = args['trigger'];
+      if (urlValue is! String ||
+          urlValue.trim().isEmpty ||
+          triggerValue != 'share_confirmation') {
+        await channel.invokeMethod('downloadError', {
+          'message':
+              'Solicitud rechazada: se requiere confirmacion explicita del usuario.',
+        });
+        return;
+      }
+
+      await _handleBackgroundDownload(urlValue.trim(), channel);
     }
   });
 }

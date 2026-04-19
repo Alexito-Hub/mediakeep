@@ -1,10 +1,7 @@
 package com.mediakeep.aur;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 import androidx.annotation.NonNull;
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
@@ -12,10 +9,7 @@ import io.flutter.plugin.common.MethodChannel;
 
 public class MainActivity extends FlutterActivity {
     private static final String CHANNEL = "com.mediakeep.aur/widget_actions";
-    private static final String PREFS_NAME = "MediaKeepPrefs";
-    private static final String KEY_AUTO_DOWNLOAD = "auto_download_enabled";
     private String initialAction = null;
-    private String initialUrl = null;
 
     private FlutterEngine flutterEngineInstance;
 
@@ -37,11 +31,10 @@ public class MainActivity extends FlutterActivity {
             if (action.contains("OPEN_HISTORY") || action.contains("OPEN_SETTINGS")
                     || action.contains("DOWNLOAD_FROM_WIDGET")) {
                 initialAction = action;
-                initialUrl = intent.getStringExtra("clipboard_url");
 
                 // If engine is already running, send action immediately
                 if (flutterEngineInstance != null) {
-                    sendActionToFlutter(action, initialUrl);
+                    sendActionToFlutter(action);
                 }
             }
         }
@@ -58,40 +51,24 @@ public class MainActivity extends FlutterActivity {
                     switch (call.method) {
                         case "getInitialAction":
                             if (initialAction != null) {
-                                result.success(initialAction + (initialUrl != null ? "|" + initialUrl : ""));
+                                result.success(initialAction);
                                 initialAction = null;
-                                initialUrl = null;
                             } else {
                                 result.success(null);
                             }
                             break;
 
-                        case "openAccessibilitySettings":
-                            Intent accIntent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                            accIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                            startActivity(accIntent);
-                            result.success(null);
-                            break;
-
-                        case "setAutoDownloadEnabled": {
-                            // Write to MediaKeepPrefs (same store as TileService)
-                            Boolean enabled = call.argument("enabled");
-                            if (enabled == null) { result.error("INVALID_ARG", "enabled is null", null); break; }
-                            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-                            prefs.edit().putBoolean(KEY_AUTO_DOWNLOAD, enabled).apply();
-                            // Also start or stop the foreground service
-                            if (enabled) {
-                                startClipboardService();
-                            } else {
-                                stopClipboardService();
+                        case "showShareDownloadConfirmation": {
+                            String url = call.argument("url");
+                            if (url == null || url.trim().isEmpty()) {
+                                result.error("INVALID_URL", "url is null or empty", null);
+                                break;
                             }
-                            result.success(null);
-                            break;
-                        }
 
-                        case "getAutoDownloadEnabled": {
-                            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-                            result.success(prefs.getBoolean(KEY_AUTO_DOWNLOAD, false));
+                            NotificationHelper.showShareDownloadConfirmationNotification(
+                                    getApplicationContext(),
+                                    url.trim());
+                            result.success(true);
                             break;
                         }
 
@@ -116,23 +93,10 @@ public class MainActivity extends FlutterActivity {
                 });
     }
 
-    private void startClipboardService() {
-        Intent serviceIntent = new Intent(this, ClipboardMonitorService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
-        } else {
-            startService(serviceIntent);
-        }
-    }
-
-    private void stopClipboardService() {
-        stopService(new Intent(this, ClipboardMonitorService.class));
-    }
-
-    private void sendActionToFlutter(String action, String url) {
+    private void sendActionToFlutter(String action) {
         if (flutterEngineInstance != null) {
             new MethodChannel(flutterEngineInstance.getDartExecutor().getBinaryMessenger(), CHANNEL)
-                    .invokeMethod("onWidgetAction", action + (url != null ? "|" + url : ""));
+                    .invokeMethod("onWidgetAction", action);
         }
     }
 
@@ -141,5 +105,4 @@ public class MainActivity extends FlutterActivity {
         super.cleanUpFlutterEngine(flutterEngine);
     }
 }
-
 

@@ -3,12 +3,9 @@ package com.mediakeep.aur;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.widget.RemoteViews;
 
 import android.view.View;
@@ -77,18 +74,6 @@ public class MediaKeepWidgetProvider extends AppWidgetProvider {
         Intent downloadIntent = new Intent(context, MainActivity.class);
         downloadIntent.setAction(ACTION_DOWNLOAD);
         downloadIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-
-        // Portapapeles
-        ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-        if (clipboard != null && clipboard.hasPrimaryClip()) {
-            ClipData clipData = clipboard.getPrimaryClip();
-            if (clipData != null && clipData.getItemCount() > 0) {
-                CharSequence text = clipData.getItemAt(0).getText();
-                if (text != null) {
-                    downloadIntent.putExtra("clipboard_url", text.toString());
-                }
-            }
-        }
 
         PendingIntent downloadPI = PendingIntent.getActivity(context, appWidgetId, downloadIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

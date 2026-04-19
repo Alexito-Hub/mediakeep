@@ -470,7 +470,7 @@ Usuario pega URL
 
 | Plataforma | Soporte | Notas |
 |-----------|---------|-------|
-| Android | ✅ Completo | FlutterDownloader, permisos storage, AdMob, share intent, home widget, ClipboardMonitorService |
+| Android | ✅ Completo | FlutterDownloader, permisos storage, AdMob, share intent, home widget, ExplicitDownloadService |
 | iOS | ✅ Completo | FlutterDownloader, compartir, AdMob |
 | Web | ✅ Parcial | Sin FlutterDownloader (abre URL en tab), WebAdView, Firebase Auth con popups |
 | Windows | ✅ Básico | video_player_win, getDownloadsDirectory |
@@ -480,8 +480,8 @@ Usuario pega URL
 
 ### 3.13 Android Nativo — `android/`
 
-- `ClipboardMonitorService.java` — Monitorea portapapeles, detecta URLs de redes sociales y dispara descarga desde background
-- `MainActivity.java` — MethodChannels: `com.mediakeep.aur/background`, `com.mediakeep.aur/notifications`
+- `ExplicitDownloadService.java` — Ejecuta descargas en segundo plano solo tras confirmación explícita del usuario
+- `MainActivity.java` — MethodChannels: `com.mediakeep.aur/widget_actions`, `com.mediakeep.aur/notifications`
 - Package: `com.mediakeep.aur`
 - `google-services.json` incluido (Firebase)
 
@@ -515,7 +515,7 @@ Usuario pega URL
 - Historial de descargas (local SharedPreferences)
 - FlutterDownloader background (Android/iOS)
 - Notificaciones nativas Android
-- ClipboardMonitorService (Android)
+- Confirmación de descarga por notificación (Sí/No) para enlaces compartidos en Android
 - Home screen widget (Android)
 - Quick Actions (holds app icon)
 - Rate limiting global HTTP

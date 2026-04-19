@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/tiktok_model.dart';
 import '../../utils/formatters.dart';
+import '../common/app_network_image.dart';
 import '../common/download_action_button_widget.dart';
 
 /// Result card widget for TikTok media
@@ -31,7 +33,9 @@ class TikTokResultCard extends StatelessWidget {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
-                    backgroundImage: NetworkImage(data.author.avatar),
+                    backgroundImage: CachedNetworkImageProvider(
+                      data.author.avatar,
+                    ),
                     backgroundColor: Theme.of(
                       context,
                     ).colorScheme.surfaceContainerHighest,
@@ -182,17 +186,11 @@ class TikTokResultCard extends StatelessWidget {
     double? height,
     BoxFit? fit,
   }) {
-    return Image.network(
-      url,
+    return AppNetworkImage(
+      imageUrl: url,
       width: width,
       height: height,
-      fit: fit,
-      errorBuilder: (context, error, stackTrace) => Container(
-        width: width,
-        height: height,
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: const Icon(Icons.broken_image),
-      ),
+      fit: fit ?? BoxFit.cover,
     );
   }
 }

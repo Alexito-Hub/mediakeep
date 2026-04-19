@@ -1,8 +1,63 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/download_history_model.dart';
 import 'widget_service.dart';
+
+Map<String, dynamic> _healHistoryEntriesPayload(String jsonString) {
+  final decoded = jsonDecode(jsonString);
+  if (decoded is! List) {
+    return {'items': <Map<String, dynamic>>[], 'changed': false};
+  }
+
+  final healed = <Map<String, dynamic>>[];
+  bool changed = false;
+
+  for (final raw in decoded) {
+    if (raw is! Map) continue;
+
+    final item = raw.map((key, value) => MapEntry('$key', value));
+    final fileSize = item['fileSize'] is int
+        ? item['fileSize'] as int
+        : int.tryParse(item['fileSize']?.toString() ?? '') ?? 0;
+
+    if (fileSize == 0) {
+      final fileName = item['fileName']?.toString() ?? '';
+      final type = item['type']?.toString() ?? 'video';
+      String filePath = item['filePath']?.toString() ?? '';
+
+      File file = File(filePath);
+
+      if (!file.existsSync() && Platform.isAndroid && fileName.isNotEmpty) {
+        final fallbackPaths = [
+          '/storage/emulated/0/Download/$fileName',
+          '/storage/emulated/0/Download/MediaKeep/$fileName',
+          '/storage/emulated/0/Download/MediaKeep/${type == 'video' ? 'video' : (type == 'audio' ? 'audio' : 'imagen')}/$fileName',
+        ];
+
+        for (final fallbackPath in fallbackPaths) {
+          final fallbackFile = File(fallbackPath);
+          if (fallbackFile.existsSync()) {
+            item['filePath'] = fallbackPath;
+            file = fallbackFile;
+            changed = true;
+            break;
+          }
+        }
+      }
+
+      if (file.existsSync()) {
+        item['fileSize'] = file.lengthSync();
+        changed = true;
+      }
+    }
+
+    healed.add(item);
+  }
+
+  return {'items': healed, 'changed': changed};
+}
 
 /// Manages download history.
 /// - For **guest users**: reads/writes from SharedPreferences (local only).
@@ -72,46 +127,18 @@ class HistoryService {
     }
 
     try {
-      final List<dynamic> jsonList = jsonDecode(jsonString);
-      bool needsSave = false;
+      final payload = await compute(_healHistoryEntriesPayload, jsonString);
+      final rawItems = (payload['items'] as List<dynamic>?) ?? [];
+      final items = rawItems
+          .map(
+            (json) => DownloadHistoryItem.fromJson(
+              Map<String, dynamic>.from(json as Map),
+            ),
+          )
+          .toList();
 
-      final items = jsonList.map((json) {
-        final item = DownloadHistoryItem.fromJson(json);
-        // Background downloaded items start at 0 bytes. Check if the file has now been saved.
-        if (item.fileSize == 0) {
-          File file = File(item.filePath);
-
-          // [Android 11+] Path Healing
-          // FlutterDownloader's publicStorage: true shifts the physical file away from the absolute savedDir.
-          if (!file.existsSync() && Platform.isAndroid) {
-            final fallbackPaths = [
-              '/storage/emulated/0/Download/${item.fileName}',
-              '/storage/emulated/0/Download/MediaKeep/${item.fileName}',
-              '/storage/emulated/0/Download/MediaKeep/${item.type == 'video' ? 'video' : (item.type == 'audio' ? 'audio' : 'imagen')}/${item.fileName}',
-            ];
-
-            for (final path in fallbackPaths) {
-              final fallbackFile = File(path);
-              if (fallbackFile.existsSync()) {
-                item.filePath = path;
-                file = fallbackFile;
-                needsSave = true;
-                break;
-              }
-            }
-          }
-
-          if (file.existsSync()) {
-            item.fileSize = file.lengthSync();
-            needsSave = true;
-          }
-        }
-        return item;
-      }).toList();
-
-      if (needsSave) {
-        final updatedJsonList = items.map((item) => item.toJson()).toList();
-        await prefs.setString(_historyKey, jsonEncode(updatedJsonList));
+      if (payload['changed'] == true) {
+        await prefs.setString(_historyKey, jsonEncode(rawItems));
       }
 
       return items;

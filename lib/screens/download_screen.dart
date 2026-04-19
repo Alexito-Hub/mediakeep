@@ -36,8 +36,10 @@ import 'history_screen.dart';
 import 'active_downloads_screen.dart';
 import '../services/history_service.dart';
 import '../services/settings_service.dart';
+import '../services/download_progress_service.dart';
 import '../widgets/layout/responsive_shell_scaffold.dart';
 import '../widgets/tutorial/spotlight_overlay.dart';
+import '../widgets/common/download_task_progress_widget.dart';
 
 /// Main download screen
 class DownloadScreen extends StatefulWidget {
@@ -49,8 +51,15 @@ class DownloadScreen extends StatefulWidget {
 }
 
 class _DownloadScreenState extends State<DownloadScreen> {
+  static final RegExp _urlRegex = RegExp(
+    r'https?://[^\s<>"{}|\\^`\[\]]+',
+    caseSensitive: false,
+  );
+
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  final DownloadProgressService _downloadProgressService =
+      DownloadProgressService.instance;
   String? _platform;
   bool _loading = false;
   TikTokData? _tiktokData;
@@ -62,10 +71,16 @@ class _DownloadScreenState extends State<DownloadScreen> {
   InstagramData? _instagramData;
   TwitterData? _twitterData;
   Timer? _debounceTimer;
+  Timer? _autoPasteTimer;
+  Timer? _downloadFeedbackTimer;
   StreamSubscription? _intentDataStreamSubscription;
   bool _hasReceivedSharedContent = false;
+  bool _isNormalizingInput = false;
+  String? _inputHintMessage;
 
   bool _isDownloading = false;
+  String? _currentDownloadTaskId;
+  Map<String, DownloadTaskProgress> _downloadProgress = {};
 
   // --- Tutorial State ---
   bool _isTutorialMode = false;
@@ -84,9 +99,19 @@ class _DownloadScreenState extends State<DownloadScreen> {
   void initState() {
     super.initState();
 
-    _controller.addListener(_detectPlatform);
+    _controller.addListener(_onControllerChanged);
     _initSharing();
+    _initDownloadProgressTracking();
     _checkTutorialState();
+  }
+
+  Future<void> _initDownloadProgressTracking() async {
+    if (kIsWeb) return;
+
+    await _downloadProgressService.ensureInitialized();
+    _downloadProgressService.addListener(_onDownloadProgressChanged);
+    await _downloadProgressService.hydrateFromDownloader();
+    _onDownloadProgressChanged();
   }
 
   Future<void> _checkTutorialState() async {
@@ -111,32 +136,29 @@ class _DownloadScreenState extends State<DownloadScreen> {
         if (mounted) _fetchMedia();
       });
     } else {
-      Future.delayed(AppConstants.autoPasteDelay, () {
-        if (mounted &&
-            !_hasReceivedSharedContent &&
-            !kIsWeb &&
-            !_isTutorialMode) {
-          _pasteFromClipboard();
-        }
+      _autoPasteTimer?.cancel();
+      _autoPasteTimer = Timer(AppConstants.autoPasteDelay, () {
+        if (!mounted || _isTutorialMode || kIsWeb) return;
+        if (_hasReceivedSharedContent) return;
+        if (_controller.text.trim().isNotEmpty) return;
+        _pasteFromClipboard(overwriteIfNotEmpty: false);
       });
     }
   }
 
-  void _initSharing() {
+  Future<void> _initSharing() async {
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-      ReceiveSharingIntent.instance.getInitialMedia().then((
-        List<SharedMediaFile> value,
-      ) {
-        if (value.isNotEmpty) {
-          _handleSharedMedia(value);
-        }
-      });
+      // Lock auto-paste during share-intent bootstrap to avoid race conditions.
+      _hasReceivedSharedContent = true;
+
+      bool hasSharedPayload = false;
 
       _intentDataStreamSubscription = ReceiveSharingIntent.instance
           .getMediaStream()
           .listen(
             (List<SharedMediaFile> value) {
               if (value.isNotEmpty) {
+                hasSharedPayload = true;
                 _handleSharedMedia(value);
               }
             },
@@ -144,6 +166,21 @@ class _DownloadScreenState extends State<DownloadScreen> {
               debugPrint('Error receiving shared text: $err');
             },
           );
+
+      try {
+        final initialMedia = await ReceiveSharingIntent.instance
+            .getInitialMedia();
+        if (initialMedia.isNotEmpty) {
+          hasSharedPayload = true;
+          _handleSharedMedia(initialMedia);
+        }
+      } catch (err) {
+        debugPrint('Error reading initial shared media: $err');
+      }
+
+      if (!hasSharedPayload && mounted && _controller.text.trim().isEmpty) {
+        _hasReceivedSharedContent = false;
+      }
     }
   }
 
@@ -162,12 +199,16 @@ class _DownloadScreenState extends State<DownloadScreen> {
   }
 
   void _handleSharedText(String sharedText) {
-    final urlPattern = RegExp(r'https?://[^\s]+', caseSensitive: false);
-    final match = urlPattern.firstMatch(sharedText);
-    final url = match?.group(0) ?? sharedText;
+    final url = _extractFirstUrl(sharedText);
+
+    if (url == null) {
+      _setInputHint('No se detectó un enlace válido');
+      return;
+    }
 
     setState(() {
       _controller.text = url;
+      _inputHintMessage = null;
     });
 
     _focusNode.unfocus();
@@ -183,15 +224,132 @@ class _DownloadScreenState extends State<DownloadScreen> {
   void dispose() {
     _scrollController.dispose();
     _debounceTimer?.cancel();
+    _autoPasteTimer?.cancel();
+    _downloadFeedbackTimer?.cancel();
     _intentDataStreamSubscription?.cancel();
+    _downloadProgressService.removeListener(_onDownloadProgressChanged);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
+  void _onControllerChanged() {
+    if (_isNormalizingInput) return;
+
+    final currentText = _controller.text;
+
+    if (currentText.trim().isEmpty) {
+      _setInputHint(null);
+      _detectPlatform();
+      return;
+    }
+
+    final shouldExtract = currentText.length >= 40 || currentText.contains(' ');
+    if (shouldExtract) {
+      final extractedUrl = _extractFirstUrl(currentText);
+      if (extractedUrl != null && extractedUrl != currentText.trim()) {
+        _isNormalizingInput = true;
+        _controller.value = TextEditingValue(
+          text: extractedUrl,
+          selection: TextSelection.collapsed(offset: extractedUrl.length),
+        );
+        _isNormalizingInput = false;
+        _setInputHint(null);
+      } else if (extractedUrl == null) {
+        _setInputHint('No se detectó un enlace válido');
+      }
+    }
+
+    _detectPlatform();
+  }
+
+  String? _extractFirstUrl(String rawText) {
+    final match = _urlRegex.firstMatch(rawText);
+    final extracted = match?.group(0)?.trim();
+    if (extracted == null || extracted.isEmpty) {
+      return null;
+    }
+    return extracted;
+  }
+
+  void _setInputHint(String? hint) {
+    if (_inputHintMessage == hint || !mounted) return;
+    setState(() {
+      _inputHintMessage = hint;
+    });
+  }
+
+  DownloadTaskProgress? get _currentDownloadTask {
+    if (_currentDownloadTaskId == null) return null;
+    return _downloadProgress[_currentDownloadTaskId!];
+  }
+
+  void _onDownloadProgressChanged() {
+    if (!mounted) return;
+
+    final latestMap = Map<String, DownloadTaskProgress>.from(
+      _downloadProgressService.tasks,
+    );
+
+    final currentTask = _currentDownloadTaskId != null
+        ? latestMap[_currentDownloadTaskId!]
+        : null;
+
+    final activeTasks =
+        latestMap.values.where((task) => task.isInProgress).toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
+    final activeTask = activeTasks.isEmpty ? null : activeTasks.first;
+
+    final fallbackTask = currentTask ?? activeTask;
+
+    setState(() {
+      _downloadProgress = latestMap;
+      if (fallbackTask != null) {
+        _currentDownloadTaskId = fallbackTask.taskId;
+      } else if (_currentDownloadTaskId != null &&
+          !latestMap.containsKey(_currentDownloadTaskId!)) {
+        _currentDownloadTaskId = null;
+      }
+      _isDownloading = latestMap.values.any((task) => task.isInProgress);
+    });
+
+    if (fallbackTask != null &&
+        (fallbackTask.isCompleted || fallbackTask.isError)) {
+      _downloadFeedbackTimer?.cancel();
+      _downloadFeedbackTimer = Timer(const Duration(seconds: 3), () {
+        if (!mounted) return;
+        if (_downloadProgress.values.any((task) => task.isInProgress)) return;
+        setState(() {
+          _currentDownloadTaskId = null;
+        });
+      });
+    }
+  }
+
+  Future<void> _retryTask(String taskId) async {
+    final newTaskId = await _downloadProgressService.retryTask(taskId);
+    if (newTaskId == null) {
+      _showError('No se pudo reintentar la descarga.');
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _currentDownloadTaskId = newTaskId;
+        _isDownloading = true;
+      });
+      _showToast('Reintentando descarga en segundo plano...');
+    }
+  }
+
   void _detectPlatform() {
     final detected = PlatformDetector.detectPlatform(_controller.text.trim());
     _debounceTimer?.cancel();
+
+    if (detected != null && _inputHintMessage != null) {
+      _setInputHint(null);
+    }
 
     if (_platform != detected) {
       setState(() => _platform = detected);
@@ -206,11 +364,24 @@ class _DownloadScreenState extends State<DownloadScreen> {
     }
   }
 
-  Future<void> _pasteFromClipboard() async {
+  Future<void> _pasteFromClipboard({bool overwriteIfNotEmpty = true}) async {
     try {
+      if (!overwriteIfNotEmpty && _controller.text.trim().isNotEmpty) {
+        return;
+      }
+
       final data = await Clipboard.getData(Clipboard.kTextPlain);
       if (data?.text != null && data!.text!.isNotEmpty) {
-        _controller.text = data.text!;
+        final extractedUrl = _extractFirstUrl(data.text!);
+
+        if (extractedUrl == null) {
+          _setInputHint('No se detectó un enlace válido');
+          _showToast('No se detectó un enlace válido');
+          return;
+        }
+
+        _controller.text = extractedUrl;
+        _setInputHint(null);
         _focusNode.unfocus();
         if (_isTutorialMode && _tutorialStep == 1) {
           setState(
@@ -378,9 +549,17 @@ class _DownloadScreenState extends State<DownloadScreen> {
         )
         .then((result) async {
           if (!mounted) return;
-          setState(() => _isDownloading = false);
 
           if (result.success) {
+            if (result.taskId != null) {
+              _currentDownloadTaskId = result.taskId;
+              _downloadProgressService.registerTaskMetadata(
+                taskId: result.taskId!,
+                fileName: result.fileName,
+                filePath: result.filePath,
+              );
+            }
+
             _showToast(
               'Descarga iniciada en segundo plano. Revisa Descargas Activas.',
               isSuccess: true,
@@ -423,6 +602,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
               );
             }
           } else {
+            setState(() => _isDownloading = false);
             _showError(result.errorMessage ?? 'Error en la descarga');
           }
         })
@@ -896,6 +1076,11 @@ class _DownloadScreenState extends State<DownloadScreen> {
               focusNode: _focusNode,
               decoration: InputDecoration(
                 hintText: 'Pega el enlace aquí...',
+                helperText: _inputHintMessage,
+                helperMaxLines: 2,
+                helperStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 filled: true,
                 fillColor: Theme.of(
                   context,
@@ -921,27 +1106,34 @@ class _DownloadScreenState extends State<DownloadScreen> {
                         tooltip: 'Pegar',
                       ),
               ),
-              onChanged: (_) => _detectPlatform(),
               onSubmitted: (_) => _fetchMedia(),
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: FilledButton.icon(
-                onPressed: _loading ? null : _fetchMedia,
-                icon: const Icon(Icons.download_rounded),
-                label: const Text(
-                  'Descargar',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                style: FilledButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            if (_currentDownloadTask != null)
+              DownloadTaskProgressWidget(
+                progress: _currentDownloadTask!,
+                onRetry: _currentDownloadTask!.isError
+                    ? () => _retryTask(_currentDownloadTask!.taskId)
+                    : null,
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton.icon(
+                  onPressed: _loading ? null : _fetchMedia,
+                  icon: const Icon(Icons.download_rounded),
+                  label: const Text(
+                    'Descargar',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),

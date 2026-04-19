@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:path_provider/path_provider.dart';
 import 'history_service.dart';
+import 'download_progress_service.dart';
 import '../core/types/typedefs.dart';
 import '../core/responses/download_response.dart';
 
@@ -17,6 +18,8 @@ class DownloadService {
     required ProgressCallback onProgress,
   }) async {
     try {
+      await DownloadProgressService.instance.ensureInitialized();
+
       final directory = await _getDownloadDirectory();
       if (directory == null) {
         return DownloadResponse.error('No se encontró carpeta de destino');
@@ -54,6 +57,12 @@ class DownloadService {
       if (taskId == null) {
         return DownloadResponse.error('No se pudo inicializar la descarga.');
       }
+
+      DownloadProgressService.instance.registerTaskMetadata(
+        taskId: taskId,
+        fileName: fileName,
+        filePath: savePath,
+      );
 
       onProgress(0.1, 'Descarga delegada a segundo plano...');
 

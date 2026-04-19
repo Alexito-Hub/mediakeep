@@ -20,18 +20,9 @@ import 'screens/author_screen.dart';
 import 'services/settings_service.dart';
 import 'services/widget_service.dart';
 import 'services/quick_actions_service.dart';
-import 'utils/platform_detector.dart';
+import 'services/download_progress_service.dart';
+import 'services/background_download_handler.dart';
 import 'utils/app_routes.dart';
-import 'services/api_service.dart';
-import 'services/download_service.dart';
-import 'services/history_service.dart';
-import 'models/tiktok_model.dart';
-import 'models/instagram_model.dart';
-import 'models/facebook_model.dart';
-import 'models/spotify_model.dart';
-import 'models/youtube_model.dart';
-import 'models/twitter_model.dart';
-import 'models/threads_model.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
@@ -44,6 +35,7 @@ void main() async {
       ignoreSsl:
           true, // Option: set to false to disable working with http links
     );
+    await DownloadProgressService.instance.ensureInitialized();
     // Eliminado: inicialización de anuncios
   }
 
@@ -387,147 +379,5 @@ Future<void> _handleBackgroundDownload(
   String url,
   MethodChannel channel,
 ) async {
-  try {
-    // 1. Detect platform
-    final platform = PlatformDetector.detectPlatform(url);
-    if (platform == null) {
-      await channel.invokeMethod('downloadError', {
-        'message': 'Plataforma no soportada',
-      });
-      return;
-    }
-
-    // NEW: Check if already downloaded
-    final isDuplicate = await HistoryService.isContentAlreadyDownloaded(
-      sourceUrl: url,
-    );
-    if (isDuplicate) {
-      debugPrint('[Background] URL already downloaded: $url');
-      await channel.invokeMethod('downloadError', {
-        'message': 'Este contenido ya fue descargado previamente.',
-      });
-      return;
-    }
-
-    // 2. Fetch media info
-    final response = await ApiService.fetchMedia(url: url, platform: platform);
-    if (!response.success || response.data == null) {
-      await channel.invokeMethod('downloadError', {
-        'message': response.errorMessage ?? 'Error fetching media',
-      });
-      return;
-    }
-
-    // 3. Parse and Extract BEST Data
-    String? downloadUrl;
-    String title = 'media';
-    String type = 'video';
-
-    final parsedData = ApiService.parseResponseData(response.data!, platform);
-
-    if (platform == 'tiktok' && parsedData is TikTokData) {
-      title = parsedData.title;
-      // TikTok MediaInfo properties are non-nullable in model but could be null at runtime if JSON missing?
-      downloadUrl = parsedData.media.noWatermark?.hdPlay;
-
-      if (downloadUrl == null || downloadUrl.isEmpty) {
-        downloadUrl = parsedData.media.noWatermark?.play;
-      }
-      if (downloadUrl == null || downloadUrl.isEmpty) {
-        downloadUrl = parsedData.media.watermark?.play;
-      }
-
-      type = 'video';
-      if (parsedData.media.images.isNotEmpty &&
-          (downloadUrl == null || downloadUrl.isEmpty)) {
-        downloadUrl = parsedData.media.images.first;
-        type = 'image';
-      }
-    } else if (platform == 'facebook' && parsedData is FacebookData) {
-      title = parsedData.title;
-      downloadUrl = parsedData.download;
-      if (downloadUrl == null || downloadUrl.isEmpty) {
-        downloadUrl = parsedData.url;
-      }
-      type = parsedData.type;
-    } else if (platform == 'instagram' && parsedData is InstagramData) {
-      if (parsedData.media.isNotEmpty) {
-        final media = parsedData.media.first;
-        downloadUrl = media.download;
-        if ((downloadUrl == null || downloadUrl.isEmpty) &&
-            media.options.isNotEmpty) {
-          downloadUrl = media.options.first.url;
-        }
-        title = 'instagram_media';
-        type = (downloadUrl != null && downloadUrl.contains('.jpg'))
-            ? 'image'
-            : 'video';
-      }
-    } else if (platform == 'youtube' && parsedData is YouTubeData) {
-      title = parsedData.info.title ?? 'youtube_video';
-      if (parsedData.videos.isNotEmpty) {
-        // Find best quality or default to first
-        downloadUrl = parsedData.videos.first.url;
-      }
-      type = 'video';
-    } else if (platform == 'spotify' && parsedData is SpotifyData) {
-      title = parsedData.title;
-      downloadUrl = parsedData.download;
-      type = 'audio';
-    } else if (platform == 'twitter' && parsedData is TwitterData) {
-      title = parsedData.title ?? 'twitter_media';
-      if (parsedData.media != null && parsedData.media!.isNotEmpty) {
-        final m = parsedData.media!.first;
-        downloadUrl = m.url;
-        type = m.type ?? 'video';
-      }
-    } else if (platform == 'threads' && parsedData is ThreadsData) {
-      if (parsedData.media.isNotEmpty) {
-        downloadUrl = parsedData.media.first.url;
-        type = parsedData.media.first.type;
-      }
-    }
-
-    // 4. Validate URL
-    debugPrint('[Background] Extracted URL: $downloadUrl');
-
-    if (downloadUrl == null || downloadUrl.isEmpty) {
-      debugPrint('[Background] URL Extraction Failed!');
-      await channel.invokeMethod('downloadError', {
-        'message': 'No se pudo extraer el enlace de descarga.',
-      });
-      return;
-    }
-
-    // Update status BEFORE starting download
-    String statusMsg =
-        'Descargando $type de ${platform.substring(0, 1).toUpperCase()}${platform.substring(1)}...';
-    await channel.invokeMethod('updateStatus', {'status': statusMsg});
-
-    // 5. Start Download
-    debugPrint('[Background] Starting DownloadService...');
-    final result = await DownloadService.startDownload(
-      url: downloadUrl,
-      type: type,
-      platform: platform,
-      title: title,
-      sourceUrl: url,
-      onProgress: (progress, status) {},
-    );
-
-    if (result.success) {
-      await channel.invokeMethod('downloadComplete', {
-        'filename': result.fileName,
-        'filepath': result.filePath,
-        'title': title, // Send title for notification
-      });
-    } else {
-      await channel.invokeMethod('downloadError', {
-        'message': result.errorMessage ?? 'Download failed',
-      });
-    }
-  } catch (e) {
-    debugPrint("Background download error: $e");
-    await channel.invokeMethod('downloadError', {'message': e.toString()});
-  }
+  await BackgroundDownloadHandler.handleBackgroundDownload(url, channel);
 }

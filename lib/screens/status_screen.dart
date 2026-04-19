@@ -16,7 +16,8 @@ class StatusScreen extends StatefulWidget {
   State<StatusScreen> createState() => _StatusScreenState();
 }
 
-class _StatusScreenState extends State<StatusScreen> {
+class _StatusScreenState extends State<StatusScreen>
+    with SingleTickerProviderStateMixin {
   ServerHealth? _serverHealth;
   List<PlatformStatus> _platformStatuses = [];
   String _apiVersion = 'Cargando...';
@@ -26,11 +27,26 @@ class _StatusScreenState extends State<StatusScreen> {
   String? _errorMessage;
   DateTime? _lastFetch;
   static const _cacheDuration = Duration(minutes: 5);
+  late final AnimationController _shimmerController;
+  late final Animation<double> _shimmerPosition;
 
   @override
   void initState() {
     super.initState();
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+    _shimmerPosition = Tween<double>(begin: -2.0, end: 2.0).animate(
+      CurvedAnimation(parent: _shimmerController, curve: Curves.linear),
+    );
     _fetchStatus();
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchStatus() async {
@@ -900,10 +916,10 @@ class _StatusScreenState extends State<StatusScreen> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: -2.0, end: 2.0),
-      duration: const Duration(milliseconds: 1500),
-      builder: (context, value, child) {
+    return AnimatedBuilder(
+      animation: _shimmerPosition,
+      builder: (context, child) {
+        final value = _shimmerPosition.value;
         return Container(
           width: width,
           height: height,
@@ -927,12 +943,6 @@ class _StatusScreenState extends State<StatusScreen> {
             ),
           ),
         );
-      },
-      onEnd: () {
-        // Restart animation by calling setState
-        if (mounted) {
-          setState(() {});
-        }
       },
     );
   }

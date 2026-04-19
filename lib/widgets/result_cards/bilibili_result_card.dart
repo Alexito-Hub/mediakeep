@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/bilibili_model.dart';
+import '../common/app_network_image.dart';
 import '../common/download_action_button_widget.dart';
 
 /// Result card widget for Bilibili videos
@@ -156,17 +157,11 @@ class BilibiliResultCard extends StatelessWidget {
     double? height,
     BoxFit? fit,
   }) {
-    return Image.network(
-      url,
+    return AppNetworkImage(
+      imageUrl: url,
       width: width,
       height: height,
-      fit: fit,
-      errorBuilder: (context, error, stackTrace) => Container(
-        width: width,
-        height: height,
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: const Icon(Icons.broken_image),
-      ),
+      fit: fit ?? BoxFit.cover,
     );
   }
 }

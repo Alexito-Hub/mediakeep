@@ -105,8 +105,37 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
 
   @override
   void dispose() {
+    _audioPlayer.stop();
     _audioPlayer.dispose();
     super.dispose();
+  }
+
+  Future<void> _retrySourcePreparation() async {
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+      _isBuffering = true;
+      _sourcePrepared = false;
+    });
+
+    try {
+      await _prepareSource();
+      await _audioPlayer.resume();
+      if (mounted) {
+        setState(() {
+          _sourcePrepared = true;
+          _isLoading = false;
+          _isBuffering = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _isBuffering = false;
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
   }
 
   Future<void> _togglePlayPause() async {
@@ -277,6 +306,15 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
                                       color: colorScheme.error,
                                       fontWeight: FontWeight.w500,
                                     ),
+                              ),
+                              const SizedBox(height: 6),
+                              TextButton.icon(
+                                onPressed: _retrySourcePreparation,
+                                icon: const Icon(
+                                  Icons.refresh_rounded,
+                                  size: 16,
+                                ),
+                                label: const Text('Reintentar'),
                               ),
                             ],
                             SizedBox(height: isCompact ? 12 : 24),

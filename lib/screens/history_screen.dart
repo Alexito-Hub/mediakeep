@@ -203,7 +203,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             context,
                             index,
                           ) {
-                            return _buildHistoryCard(entry.value[index]);
+                            return RepaintBoundary(
+                              child: _buildHistoryCard(entry.value[index]),
+                            );
                           }, childCount: entry.value.length),
                         ),
                       ),
@@ -265,8 +267,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 childAspectRatio: 3.2,
                               ),
                           delegate: SliverChildBuilderDelegate(
-                            (context, index) =>
-                                _buildHistoryCardGrid(entry.value[index]),
+                            (context, index) => RepaintBoundary(
+                              child: _buildHistoryCardGrid(entry.value[index]),
+                            ),
                             childCount: entry.value.length,
                           ),
                         ),
@@ -503,6 +506,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           child: Image.file(
                             File(item.filePath),
                             fit: BoxFit.cover,
+                            cacheWidth: 256,
+                            cacheHeight: 256,
                             errorBuilder: (context, error, stackTrace) =>
                                 Icon(typeIcon, color: iconColor, size: 24),
                           ),
@@ -652,6 +657,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               fit: BoxFit.cover,
                               width: 72,
                               height: 72,
+                              cacheWidth: 256,
+                              cacheHeight: 256,
                               errorBuilder: (context, error, stackTrace) =>
                                   Icon(typeIcon, color: iconColor, size: 28),
                             ),

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import '../utils/responsive.dart';
 import '../widgets/media/video_preview_widget.dart';
 import '../widgets/media/audio_preview_widget.dart';
 
@@ -198,12 +199,21 @@ class _MediaPreviewScreenState extends State<MediaPreviewScreen>
   // ── VIDEO ────────────────────────────────────────────────────────────────
 
   Widget _buildVideoView() {
-    return SizedBox.expand(
-      child: VideoPreviewWidget(
-        filePath: _resolvedFilePath ?? widget.filePath,
-        autoPlay: true,
-        showControls: true,
-        fullscreen: true,
+    return Container(
+      color: Colors.black,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: Responsive.isMobile(context) ? double.infinity : 980,
+            maxHeight: MediaQuery.of(context).size.height,
+          ),
+          child: VideoPreviewWidget(
+            filePath: _resolvedFilePath ?? widget.filePath,
+            autoPlay: true,
+            showControls: true,
+            fullscreen: true,
+          ),
+        ),
       ),
     );
   }

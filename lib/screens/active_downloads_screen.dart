@@ -2,9 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../services/download_progress_service.dart';
 import '../utils/responsive.dart';
 import '../utils/app_routes.dart';
 import '../widgets/layout/responsive_shell_scaffold.dart';
+import '../widgets/common/download_task_progress_widget.dart';
 import 'media_preview_screen.dart';
 
 /// Displays all active and recently completed background downloads.
@@ -18,11 +20,31 @@ class ActiveDownloadsScreen extends StatefulWidget {
 
 class _ActiveDownloadsScreenState extends State<ActiveDownloadsScreen> {
   List<DownloadTask> _tasks = [];
+  final DownloadProgressService _progressService =
+      DownloadProgressService.instance;
 
   @override
   void initState() {
     super.initState();
+    _initProgressTracking();
+  }
+
+  Future<void> _initProgressTracking() async {
+    if (kIsWeb) return;
+    await _progressService.ensureInitialized();
+    _progressService.addListener(_onProgressChanged);
+    await _progressService.hydrateFromDownloader();
+    await _loadTasks();
+  }
+
+  void _onProgressChanged() {
     _loadTasks();
+  }
+
+  @override
+  void dispose() {
+    _progressService.removeListener(_onProgressChanged);
+    super.dispose();
   }
 
   Future<void> _loadTasks() async {
@@ -39,7 +61,7 @@ class _ActiveDownloadsScreenState extends State<ActiveDownloadsScreen> {
   }
 
   Future<void> _retryTask(String taskId) async {
-    final newTaskId = await FlutterDownloader.retry(taskId: taskId);
+    final newTaskId = await _progressService.retryTask(taskId);
     if (newTaskId != null) _loadTasks();
   }
 
@@ -111,6 +133,24 @@ class _ActiveDownloadsScreenState extends State<ActiveDownloadsScreen> {
     return 'Desconocido';
   }
 
+  DownloadTaskProgress _taskToProgress(DownloadTask task) {
+    final existing = _progressService.tasks[task.taskId];
+    if (existing != null) {
+      return existing;
+    }
+
+    return DownloadTaskProgress(
+      taskId: task.taskId,
+      status: task.status,
+      progress: task.progress,
+      fileName: task.filename,
+      filePath: task.filename != null
+          ? '${task.savedDir}/${task.filename}'
+          : null,
+      updatedAt: DateTime.now(),
+    );
+  }
+
   Color _statusColor(DownloadTaskStatus status, BuildContext context) {
     if (status == DownloadTaskStatus.complete) return Colors.green;
     if (status == DownloadTaskStatus.failed) {
@@ -180,7 +220,6 @@ class _ActiveDownloadsScreenState extends State<ActiveDownloadsScreen> {
                 itemCount: _tasks.length,
                 itemBuilder: (context, index) {
                   final task = _tasks[index];
-                  final isRunning = task.status == DownloadTaskStatus.running;
                   final isComplete = task.status == DownloadTaskStatus.complete;
                   final isFailed = task.status == DownloadTaskStatus.failed;
 
@@ -216,13 +255,14 @@ class _ActiveDownloadsScreenState extends State<ActiveDownloadsScreen> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          if (isRunning) ...[
-                            LinearProgressIndicator(
-                              value: task.progress / 100,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            const SizedBox(height: 4),
-                          ],
+                          DownloadTaskProgressWidget(
+                            compact: true,
+                            progress: _taskToProgress(task),
+                            onRetry: isFailed
+                                ? () => _retryTask(task.taskId)
+                                : null,
+                          ),
+                          const SizedBox(height: 6),
                           Row(
                             children: [
                               Text(

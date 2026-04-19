@@ -185,4 +185,9 @@ class _SpotlightPainter extends CustomPainter {
   bool shouldRepaint(covariant _SpotlightPainter oldDelegate) {
     return oldDelegate.targetRect != targetRect;
   }
+
+  @override
+  bool shouldRebuildSemantics(covariant _SpotlightPainter oldDelegate) {
+    return false;
+  }
 }

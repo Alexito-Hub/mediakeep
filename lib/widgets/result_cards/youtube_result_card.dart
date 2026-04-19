@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/youtube_model.dart';
+import '../common/app_network_image.dart';
 import '../common/download_action_button_widget.dart';
 
 /// Result card widget for YouTube videos
@@ -30,7 +32,9 @@ class YouTubeResultCard extends StatelessWidget {
                     if (data.channel.avatar != null)
                       CircleAvatar(
                         radius: 20,
-                        backgroundImage: NetworkImage(data.channel.avatar!),
+                        backgroundImage: CachedNetworkImageProvider(
+                          data.channel.avatar!,
+                        ),
                       )
                     else
                       const CircleAvatar(radius: 20, child: Icon(Icons.person)),
@@ -269,17 +273,11 @@ class YouTubeResultCard extends StatelessWidget {
     double? height,
     BoxFit? fit,
   }) {
-    return Image.network(
-      url,
+    return AppNetworkImage(
+      imageUrl: url,
       width: width,
       height: height,
-      fit: fit,
-      errorBuilder: (context, error, stackTrace) => Container(
-        width: width,
-        height: height,
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: const Icon(Icons.broken_image),
-      ),
+      fit: fit ?? BoxFit.cover,
     );
   }
 }

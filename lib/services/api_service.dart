@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import '../core/responses/api_response.dart';
 import '../models/bilibili_model.dart';
@@ -55,6 +56,14 @@ class ApiService {
       }
 
       return ApiResponse.success(data: payload, platform: platform);
+    } on SocketException {
+      return ApiResponse.error(
+        'No hay conexion a internet. Verifica tu red e intenta nuevamente.',
+      );
+    } on HandshakeException {
+      return ApiResponse.error(
+        'Error de certificado SSL al conectar con el proveedor. Intenta mas tarde.',
+      );
     } on TimeoutException {
       return ApiResponse.error(
         'La operación tardó demasiado. Intenta de nuevo.',
@@ -118,6 +127,35 @@ class ApiService {
 
   static String _humanizeError(String platform, Object error) {
     final raw = error.toString().replaceFirst('Exception: ', '').trim();
+    final lower = raw.toLowerCase();
+
+    if (lower.contains('socketexception') ||
+        lower.contains('failed host lookup') ||
+        lower.contains('network is unreachable') ||
+        lower.contains('connection reset')) {
+      return 'No hay conexion a internet. Revisa tu red e intenta otra vez.';
+    }
+
+    if (lower.contains('ssl') ||
+        lower.contains('certificate') ||
+        lower.contains('handshake')) {
+      return 'Error de certificado SSL. Intenta nuevamente en unos minutos.';
+    }
+
+    if (lower.contains('429') ||
+        lower.contains('too many requests') ||
+        lower.contains('rate limit')) {
+      return 'Demasiadas solicitudes (429). Espera un momento e intenta de nuevo.';
+    }
+
+    if (lower.contains('404') || lower.contains('not found')) {
+      return 'No se encontro el contenido (404). Puede haber sido eliminado o ser privado.';
+    }
+
+    if (lower.contains('timeout') || lower.contains('timed out')) {
+      return 'La solicitud demoro demasiado. Intenta nuevamente.';
+    }
+
     if (raw.isNotEmpty && raw.length < 180) {
       return raw;
     }

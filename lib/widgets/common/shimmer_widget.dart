@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Reusable shimmer loading widget with animation
-class ShimmerBox extends StatelessWidget {
+class ShimmerBox extends StatefulWidget {
   final double width;
   final double height;
   final bool isCircle;
@@ -16,19 +16,50 @@ class ShimmerBox extends StatelessWidget {
   });
 
   @override
+  State<ShimmerBox> createState() => _ShimmerBoxState();
+}
+
+class _ShimmerBoxState extends State<ShimmerBox>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _position;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+
+    _position = Tween<double>(
+      begin: -2.0,
+      end: 2.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: -2.0, end: 2.0),
-      duration: const Duration(milliseconds: 1500),
-      builder: (context, value, child) {
+    return AnimatedBuilder(
+      animation: _position,
+      builder: (context, child) {
+        final value = _position.value;
         return Container(
-          width: width,
-          height: height,
+          width: widget.width,
+          height: widget.height,
           decoration: BoxDecoration(
-            shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
-            borderRadius: isCircle ? null : BorderRadius.circular(borderRadius),
+            shape: widget.isCircle ? BoxShape.circle : BoxShape.rectangle,
+            borderRadius: widget.isCircle
+                ? null
+                : BorderRadius.circular(widget.borderRadius),
             gradient: LinearGradient(
               begin: Alignment(value - 1, 0),
               end: Alignment(value + 1, 0),
@@ -47,30 +78,13 @@ class ShimmerBox extends StatelessWidget {
           ),
         );
       },
-      onEnd: () {
-        // Animation will restart automatically when widget rebuilds
-      },
     );
   }
 }
 
 /// Shimmer loading for result cards (TikTok, Facebook, etc.)
-class ShimmerResultCard extends StatefulWidget {
+class ShimmerResultCard extends StatelessWidget {
   const ShimmerResultCard({super.key});
-
-  @override
-  State<ShimmerResultCard> createState() => _ShimmerResultCardState();
-}
-
-class _ShimmerResultCardState extends State<ShimmerResultCard> {
-  @override
-  void initState() {
-    super.initState();
-    // Trigger rebuild every 1.5s to restart animation
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) setState(() {});
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,21 +135,8 @@ class _ShimmerResultCardState extends State<ShimmerResultCard> {
 }
 
 /// Shimmer loading for platform icons section
-class ShimmerPlatformIcons extends StatefulWidget {
+class ShimmerPlatformIcons extends StatelessWidget {
   const ShimmerPlatformIcons({super.key});
-
-  @override
-  State<ShimmerPlatformIcons> createState() => _ShimmerPlatformIconsState();
-}
-
-class _ShimmerPlatformIconsState extends State<ShimmerPlatformIcons> {
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) setState(() {});
-    });
-  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,10 +1,6 @@
 /// Application constants
 class AppConstants {
-  // API Configuration
-  // Use 'http://localhost:8080' for local development if running the backend locally
-  static const String apiBaseUrl = 'https://api.auralixpe.xyz';
-  static const String appSecret =
-      'a8f9c1d2b3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0';
+  // Local extraction mode (no custom backend endpoints).
 
   // Platform detection patterns
   static const Map<String, List<String>> platformPatterns = {

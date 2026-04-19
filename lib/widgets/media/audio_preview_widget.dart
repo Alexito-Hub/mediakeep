@@ -1,28 +1,35 @@
 import 'dart:ui';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class AudioPreviewWidget extends StatefulWidget {
   final String? filePath;
   final String? url;
+  final Uint8List? bytes;
+  final String? mimeType;
   final String? title;
   final String? artist;
   final String? albumCover;
+  final Uint8List? albumCoverBytes;
   final bool isPreview;
+  final bool allowNetworkSource;
 
   const AudioPreviewWidget({
     super.key,
     this.filePath,
     this.url,
+    this.bytes,
+    this.mimeType,
     this.title,
     this.artist,
     this.albumCover,
+    this.albumCoverBytes,
     this.isPreview = false,
+    this.allowNetworkSource = true,
   }) : assert(
-         filePath != null || url != null,
-         'Must provide either filePath or url',
+         filePath != null || url != null || bytes != null,
+         'Must provide either filePath, url or bytes',
        );
 
   @override
@@ -33,19 +40,33 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
   late AudioPlayer _audioPlayer;
   bool _isPlaying = false;
   bool _isLoading = false;
+  bool _isBuffering = false;
+  bool _sourcePrepared = false;
+  String? _errorMessage;
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
+
+  bool get _hasArtwork {
+    if (widget.albumCoverBytes != null && widget.albumCoverBytes!.isNotEmpty) {
+      return true;
+    }
+    return false;
+  }
 
   @override
   void initState() {
     super.initState();
     _audioPlayer = AudioPlayer();
+    _audioPlayer.setReleaseMode(ReleaseMode.stop);
 
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (mounted) {
         setState(() {
           _isPlaying = state == PlayerState.playing;
-          if (state == PlayerState.playing) _isLoading = false;
+          if (state == PlayerState.playing) {
+            _isLoading = false;
+            _isBuffering = false;
+          }
         });
       }
     });
@@ -62,6 +83,10 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
       if (mounted) {
         setState(() {
           _position = position;
+          if (_isLoading && position > Duration.zero) {
+            _isLoading = false;
+            _isBuffering = false;
+          }
         });
       }
     });
@@ -71,6 +96,8 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
         setState(() {
           _isPlaying = false;
           _position = Duration.zero;
+          _isLoading = false;
+          _isBuffering = false;
         });
       }
     });
@@ -86,30 +113,55 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
     if (_isPlaying) {
       await _audioPlayer.pause();
     } else {
-      if (_position == Duration.zero) {
-        setState(() => _isLoading = true);
+      if (!_sourcePrepared) {
+        setState(() {
+          _isLoading = true;
+          _isBuffering = true;
+          _errorMessage = null;
+        });
         try {
-          if (widget.filePath != null) {
-            await _audioPlayer.play(DeviceFileSource(widget.filePath!));
-          } else if (widget.url != null) {
-            // Optimización: Intentar obtener audio del cache
-            final fileInfo = await DefaultCacheManager().getFileFromCache(widget.url!);
-            if (fileInfo != null) {
-              await _audioPlayer.play(DeviceFileSource(fileInfo.file.path));
-            } else {
-              await _audioPlayer.play(UrlSource(widget.url!));
-              // Cachear en background
-              DefaultCacheManager().downloadFile(widget.url!);
-            }
-          }
+          await _prepareSource();
+          await _audioPlayer.resume();
+          _sourcePrepared = true;
         } catch (e) {
-          if (mounted) setState(() => _isLoading = false);
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _isBuffering = false;
+              _errorMessage = e.toString().replaceFirst('Exception: ', '');
+            });
+          }
           debugPrint('Error playing audio: $e');
         }
       } else {
+        if (_position == Duration.zero) {
+          await _audioPlayer.seek(Duration.zero);
+        }
         await _audioPlayer.resume();
       }
     }
+  }
+
+  Future<void> _prepareSource() async {
+    if (widget.bytes != null && widget.bytes!.isNotEmpty) {
+      // Memory source enables local previews on web without filesystem access.
+      await _audioPlayer.setSource(BytesSource(widget.bytes!));
+      return;
+    }
+
+    if (widget.filePath != null && widget.filePath!.isNotEmpty) {
+      await _audioPlayer.setSource(DeviceFileSource(widget.filePath!));
+      return;
+    }
+
+    if (widget.url != null && widget.url!.isNotEmpty) {
+      // Remote source support was removed to keep previews fully local.
+      throw Exception(
+        'La previsualización por URL remota fue eliminada. Selecciona un archivo local.',
+      );
+    }
+
+    throw Exception('No hay una fuente de audio local válida.');
   }
 
   Future<void> _seekTo(double value) async {
@@ -167,15 +219,14 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
             borderRadius: BorderRadius.circular(28),
             child: Stack(
               children: [
-                if (widget.albumCover != null && !isMicro)
+                if (_hasArtwork && !isMicro)
                   Positioned.fill(
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        CachedNetworkImage(
-                          imageUrl: widget.albumCover!,
+                        Image.memory(
+                          widget.albumCoverBytes!,
                           fit: BoxFit.cover,
-                          errorWidget: (context, url, error) => const SizedBox(),
                         ),
                         BackdropFilter(
                           filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
@@ -210,13 +261,24 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (widget.albumCover != null &&
-                                maxHeight > 220) ...[
+                            if (_hasArtwork && maxHeight > 220) ...[
                               _buildAlbumCover(isCompact ? 100 : 160),
                               SizedBox(height: isCompact ? 16 : 24),
                             ],
 
                             _buildHeader(colorScheme, isCompact),
+                            if (_errorMessage != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                _errorMessage!,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: colorScheme.error,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                              ),
+                            ],
                             SizedBox(height: isCompact ? 12 : 24),
 
                             _buildProgressBar(colorScheme, isCompact),
@@ -242,10 +304,7 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
   Widget _buildMicroLayout(ColorScheme colorScheme) {
     return Row(
       children: [
-        if (widget.albumCover != null) ...[
-          _buildAlbumCover(48),
-          const SizedBox(width: 12),
-        ],
+        if (_hasArtwork) ...[_buildAlbumCover(48), const SizedBox(width: 12)],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,11 +331,22 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
         ),
         IconButton(
           onPressed: _togglePlayPause,
-          icon: Icon(
-            _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-            size: 40,
-            color: colorScheme.primary,
-          ),
+          icon: _isLoading || _isBuffering
+              ? SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    color: colorScheme.primary,
+                  ),
+                )
+              : Icon(
+                  _isPlaying
+                      ? Icons.pause_circle_filled
+                      : Icons.play_circle_filled,
+                  size: 40,
+                  color: colorScheme.primary,
+                ),
         ),
       ],
     );
@@ -284,7 +354,7 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
 
   Widget _buildAlbumCover(double size) {
     return Hero(
-      tag: widget.url ?? widget.filePath ?? 'album_art',
+      tag: widget.url ?? widget.filePath ?? widget.title ?? 'album_art',
       child: Container(
         height: size,
         width: size,
@@ -300,13 +370,8 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: widget.albumCover != null
-              ? CachedNetworkImage(
-                  imageUrl: widget.albumCover!,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => _buildPlaceholder(size),
-                  errorWidget: (context, url, error) => _buildPlaceholder(size),
-                )
+          child: widget.albumCoverBytes != null
+              ? Image.memory(widget.albumCoverBytes!, fit: BoxFit.cover)
               : _buildPlaceholder(size),
         ),
       ),
@@ -451,7 +516,7 @@ class _AudioPreviewWidgetState extends State<AudioPreviewWidget> {
               onTap: _togglePlayPause,
               borderRadius: BorderRadius.circular(50),
               child: Center(
-                child: _isLoading
+                child: _isLoading || _isBuffering
                     ? SizedBox(
                         width: 24,
                         height: 24,

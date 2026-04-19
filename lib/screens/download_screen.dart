@@ -234,7 +234,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
     if (_platform == null) {
       return _showError(
-        'Enlace no soportado. Usa TikTok, Facebook, Spotify o Threads.',
+        'Enlace no soportado. Usa TikTok, Facebook, Spotify, Threads, YouTube, Bilibili, Instagram o X.',
       );
     }
 
@@ -244,6 +244,10 @@ class _DownloadScreenState extends State<DownloadScreen> {
       _facebookData = null;
       _spotifyData = null;
       _threadsData = null;
+      _youtubeData = null;
+      _bilibiliData = null;
+      _instagramData = null;
+      _twitterData = null;
       _isDownloading = false;
     });
 
@@ -289,11 +293,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
             break;
         }
       } else {
-        if (response.limitReached) {
-          _showLimitReachedModal(response.errorMessage ?? 'Límite alcanzado');
-        } else {
-          _showError(response.errorMessage ?? 'Error desconocido');
-        }
+        _showError(response.errorMessage ?? 'No se encontró contenido descargable.');
       }
     } catch (e) {
       _showError('Ocurrió un error inesperado al parsear los datos.');
@@ -526,26 +526,6 @@ class _DownloadScreenState extends State<DownloadScreen> {
     }
 
     return false;
-  }
-
-  void _showLimitReachedModal(String message) {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.lock_outline_rounded, size: 48),
-        title: const Text('Límite Alcanzado'),
-        content: Text(message),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendido'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _launchUrl(String? url) async {

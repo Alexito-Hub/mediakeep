@@ -80,9 +80,6 @@ dependencies:
   # Settings & persistence
   shared_preferences: ^2.2.2
   
-  # Image caching
-  cached_network_image: ^3.4.1
-  
   # Date formatting
   intl: ^0.19.0
   
@@ -98,11 +95,12 @@ dependencies:
   flutter_web_plugins:
     sdk: flutter
   
-  # Caching
-  flutter_cache_manager: ^3.4.1
-  
   # Audio player for Spotify previews
   audioplayers: ^6.1.0
+
+  # Local media picker for serverless beta preview mode
+  file_picker: ^8.1.7
+
   dtd: ^4.0.0
   flutter_lints: ^6.0.0
   google_fonts: ^6.3.2

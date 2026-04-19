@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:cached_network_image/cached_network_image.dart';
-import '../media/video_preview_widget.dart';
 
 class ContentPreview extends StatefulWidget {
   final String coverUrl;
@@ -19,14 +16,13 @@ class _ContentPreviewState extends State<ContentPreview> {
   @override
   Widget build(BuildContext context) {
     if (_showVideo && widget.videoUrl != null) {
-      return VideoPreviewWidget(url: widget.videoUrl, autoPlay: true);
+      return _buildRemoteDisabledState();
     }
 
     return Stack(
       alignment: Alignment.center,
       children: [
-        _buildNetworkImage(
-          widget.coverUrl,
+        _buildLocalFallback(
           width: double.infinity,
           height: 250,
           fit: BoxFit.cover,
@@ -52,34 +48,26 @@ class _ContentPreviewState extends State<ContentPreview> {
     );
   }
 
-  Widget _buildNetworkImage(
-    String url, {
-    double? width,
-    double? height,
-    BoxFit? fit,
-  }) {
-    final imageUrl = kIsWeb
-        ? 'https://corsproxy.io/?${Uri.encodeComponent(url)}'
-        : url;
-
-    return CachedNetworkImage(
-      imageUrl: imageUrl,
+  Widget _buildLocalFallback({double? width, double? height, BoxFit? fit}) {
+    return Container(
       width: width,
       height: height,
-      fit: fit,
-      placeholder: (context, url) => Container(
-        width: width,
-        height: height,
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: const Center(
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: const Center(
+        child: Icon(Icons.image_not_supported_rounded, size: 40),
       ),
-      errorWidget: (context, url, error) => Container(
-        width: width,
-        height: height,
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: const Icon(Icons.broken_image),
+    );
+  }
+
+  Widget _buildRemoteDisabledState() {
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        'La previsualización remota fue eliminada. Usa previsualización local BETA.',
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.bodyMedium,
       ),
     );
   }

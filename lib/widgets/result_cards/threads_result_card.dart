@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../models/threads_model.dart';
 import '../../utils/formatters.dart';
@@ -31,9 +30,7 @@ class ThreadsResultCard extends StatelessWidget {
                     if (data.author.profilePicUrl.isNotEmpty)
                       CircleAvatar(
                         backgroundImage: NetworkImage(
-                          kIsWeb
-                              ? 'https://api.allorigins.win/raw?url=${Uri.encodeComponent(data.author.profilePicUrl)}'
-                              : data.author.profilePicUrl,
+                          data.author.profilePicUrl,
                         ),
                         backgroundColor: Theme.of(
                           context,
@@ -207,12 +204,8 @@ class ThreadsResultCard extends StatelessWidget {
     double? height,
     BoxFit? fit,
   }) {
-    final imageUrl = kIsWeb
-        ? 'https://corsproxy.io/?${Uri.encodeComponent(url)}'
-        : url;
-
     return Image.network(
-      imageUrl,
+      url,
       width: width,
       height: height,
       fit: fit,

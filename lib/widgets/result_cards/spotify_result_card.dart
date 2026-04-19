@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../models/spotify_model.dart';
 import '../common/download_action_button_widget.dart';
@@ -156,12 +155,8 @@ class _SpotifyResultCardState extends State<SpotifyResultCard> {
     BoxFit? fit,
     Widget Function(BuildContext, Object, StackTrace?)? errorBuilder,
   }) {
-    final imageUrl = kIsWeb
-        ? 'https://corsproxy.io/?${Uri.encodeComponent(url)}'
-        : url;
-
     return Image.network(
-      imageUrl,
+      url,
       width: width,
       height: height,
       fit: fit,

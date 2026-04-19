@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../models/tiktok_model.dart';
 import '../../utils/formatters.dart';
@@ -32,11 +31,7 @@ class TikTokResultCard extends StatelessWidget {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
-                    backgroundImage: NetworkImage(
-                      kIsWeb
-                          ? 'https://api.allorigins.win/raw?url=${Uri.encodeComponent(data.author.avatar)}'
-                          : data.author.avatar,
-                    ),
+                    backgroundImage: NetworkImage(data.author.avatar),
                     backgroundColor: Theme.of(
                       context,
                     ).colorScheme.surfaceContainerHighest,
@@ -187,12 +182,8 @@ class TikTokResultCard extends StatelessWidget {
     double? height,
     BoxFit? fit,
   }) {
-    final imageUrl = kIsWeb
-        ? 'https://corsproxy.io/?${Uri.encodeComponent(url)}'
-        : url;
-
     return Image.network(
-      imageUrl,
+      url,
       width: width,
       height: height,
       fit: fit,

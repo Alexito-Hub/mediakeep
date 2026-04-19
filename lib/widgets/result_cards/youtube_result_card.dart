@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../models/youtube_model.dart';
 import '../common/download_action_button_widget.dart';
@@ -31,11 +30,7 @@ class YouTubeResultCard extends StatelessWidget {
                     if (data.channel.avatar != null)
                       CircleAvatar(
                         radius: 20,
-                        backgroundImage: NetworkImage(
-                          kIsWeb
-                              ? 'https://corsproxy.io/?${Uri.encodeComponent(data.channel.avatar!)}'
-                              : data.channel.avatar!,
-                        ),
+                        backgroundImage: NetworkImage(data.channel.avatar!),
                       )
                     else
                       const CircleAvatar(radius: 20, child: Icon(Icons.person)),
@@ -274,12 +269,8 @@ class YouTubeResultCard extends StatelessWidget {
     double? height,
     BoxFit? fit,
   }) {
-    final imageUrl = kIsWeb
-        ? 'https://corsproxy.io/?${Uri.encodeComponent(url)}'
-        : url;
-
     return Image.network(
-      imageUrl,
+      url,
       width: width,
       height: height,
       fit: fit,

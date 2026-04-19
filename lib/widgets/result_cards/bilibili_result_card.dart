@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../models/bilibili_model.dart';
 import '../common/download_action_button_widget.dart';
@@ -157,12 +156,8 @@ class BilibiliResultCard extends StatelessWidget {
     double? height,
     BoxFit? fit,
   }) {
-    final imageUrl = kIsWeb
-        ? 'https://corsproxy.io/?${Uri.encodeComponent(url)}'
-        : url;
-
     return Image.network(
-      imageUrl,
+      url,
       width: width,
       height: height,
       fit: fit,

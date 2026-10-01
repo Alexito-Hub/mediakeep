@@ -11,6 +11,11 @@
   try {
     const endpoint = history ? '/releases?per_page=30' : '/releases/latest';
     const response = await fetch('https://api.github.com/repos/' + repo + endpoint, {signal: AbortSignal.timeout(10000), headers:{Accept:'application/vnd.github+json'}});
+    if (response.status === 404) {
+      if (status) { status.textContent = 'Todavía no hay una versión pública disponible.'; document.querySelector('#notes').textContent = 'Las notas aparecerán junto con la primera publicación.'; }
+      if (history) history.textContent = 'Todavía no hay versiones estables publicadas.';
+      return;
+    }
     if (!response.ok) throw new Error('unavailable');
     const data = await response.json();
     if (history) {

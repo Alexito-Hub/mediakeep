@@ -66,4 +66,50 @@
     copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(code.textContent);result.textContent='Copiado';}catch{result.textContent='Selecciona el comando para copiarlo.'}});
     helper.append(label,code,copy,result);document.querySelector('.release-panel').after(helper);
   }
+  /* ── Mobile drawer ── */
+  const menuBtns = document.querySelectorAll('.mobile-menu-btn');
+  const headerNav = document.querySelector('.header nav');
+  if (menuBtns.length && headerNav) {
+    let overlay = document.querySelector('.nav-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'nav-overlay';
+      document.body.appendChild(overlay);
+    }
+    if (!headerNav.querySelector('.nav-drawer-header')) {
+      const drawerHead = document.createElement('div');
+      drawerHead.className = 'nav-drawer-header';
+      const brandClone = document.querySelector('.header .brand');
+      if (brandClone) drawerHead.appendChild(brandClone.cloneNode(true));
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'nav-close-btn';
+      closeBtn.setAttribute('aria-label', 'Cerrar menú');
+      closeBtn.textContent = '✕';
+      drawerHead.appendChild(closeBtn);
+      headerNav.insertBefore(drawerHead, headerNav.firstChild);
+      closeBtn.addEventListener('click', closeDrawer);
+    }
+    function openDrawer() {
+      headerNav.classList.add('nav-open');
+      overlay.style.display = 'block';
+      requestAnimationFrame(() => overlay.style.opacity = '1');
+      document.body.style.overflow = 'hidden';
+      menuBtns.forEach(b => { b.classList.add('open'); b.setAttribute('aria-expanded', 'true'); });
+    }
+    function closeDrawer() {
+      headerNav.classList.remove('nav-open');
+      overlay.style.opacity = '0';
+      document.body.style.overflow = '';
+      menuBtns.forEach(b => { b.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); });
+      setTimeout(() => { overlay.style.display = ''; }, 300);
+    }
+    menuBtns.forEach(btn => {
+      btn.setAttribute('aria-expanded', 'false');
+      btn.addEventListener('click', () => headerNav.classList.contains('nav-open') ? closeDrawer() : openDrawer());
+    });
+    overlay.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && headerNav.classList.contains('nav-open')) closeDrawer(); });
+  }
 })();
+

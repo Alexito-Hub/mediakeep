@@ -4,13 +4,13 @@
 
 Las descargas y las preferencias se guardan en el dispositivo según las opciones de la aplicación. El historial y los permisos disponibles dependen de la plataforma y de la versión.
 
-## Conexiones y cuenta
+## Conexiones externas
 
-Procesar un enlace puede enviar la URL solicitada y los datos necesarios de la petición al backend o a la plataforma de origen. Las funciones de cuenta usan Firebase; no debe interpretarse MediaKeep como un sistema exclusivamente local.
+Procesar un enlace puede enviar la URL solicitada y los datos necesarios de la petición al backend o a la plataforma de origen. La aplicación no es un sistema exclusivamente local: resolver enlaces requiere contactar esos servicios.
 
 ## Servicios adicionales
 
-El proyecto integra publicidad y pagos. Al utilizar funciones que los activen pueden intervenir proveedores externos y sus condiciones. Consulta los avisos de la versión que utilices.
+Las funciones disponibles y los proveedores externos pueden cambiar entre versiones. Consulta los avisos de la versión que utilices.
 
 ## Este sitio
 

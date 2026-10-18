@@ -15,3 +15,7 @@ Consulta el historial y la carpeta de destino elegida. Los permisos y la ubicaci
 ## No se instala una actualización
 
 Verifica que el paquete corresponda a tu dispositivo y que use la misma firma. No desinstales sin guardar antes los archivos que quieras conservar.
+
+## La comprobación de actualización falla
+
+Comprueba la conexión y abre Descargas en este sitio para consultar la publicación oficial. No instales un archivo cuya comprobación de integridad haya fallado; vuelve a descargarlo. Si el identificador o la firma de tu edición anterior son distintos, consulta la guía de instalación.

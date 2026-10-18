@@ -21,7 +21,9 @@ Sitio estático sin dependencias ni build obligatorio. Servir esta carpeta con u
 La consulta de releases no utiliza tokens. Los fallos de red y la ausencia de publicaciones muestran un aviso; no se inventan versiones ni enlaces a binarios inexistentes. Las notas externas se muestran como texto.
 
 ## Publicación
-GitHub Pages usa el workflow .github/workflows/pages.yml al actualizar main. Configurar Pages con origen GitHub Actions.
+GitHub Pages usa `.github/workflows/pages.yml` al actualizar main, publicar una release estable o ejecutarlo manualmente. Configurar Pages con origen GitHub Actions. `scripts/prepare_site.py` prepara solo los archivos públicos en `_site` y obtiene `version.json` de la última release estable: verifica identidad, tag, archivos, tamaños y hashes disponibles antes de desplegar. Un despliegue posterior de la web también conserva el manifiesto actual. No se guarda un manifiesto ficticio en el código.
+
+Pruebas: `python -m unittest discover -s scripts -p 'test_*.py'`. Desde la carpeta superior Webs, `node test-sites.cjs` valida ambos clientes web. El navegador consulta releases sin credenciales; solo el proceso de Pages usa su `GITHUB_TOKEN` de lectura.
 
 El código de la app se mantiene en otro repositorio. Nunca copiar su historial ni sus carpetas a este repositorio. Los scripts de la app usan release.config.json para dirigir aquí los binarios y PUBLIC_RELEASE_TOKEN para publicar desde CI.
 
